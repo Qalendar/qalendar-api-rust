@@ -18,3 +18,8 @@ target/
 
 # Environment variables
 *.env
+
+
+# Backup files
+*.bak
+*.old
