@@ -6,7 +6,7 @@ edition = "2024"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [[bin]] # Define the binary explicitly
-name = "qalendar-server"
+name = "qalendar-api"
 path = "src/main.rs"
 
 [dependencies]
