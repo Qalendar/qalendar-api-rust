@@ -5,6 +5,8 @@ use crate::middleware::auth::AuthenticatedUser; // Import the extractor
 use axum::Json; // For returning JSON responses
 use serde_json::json; // For simple JSON responses
 
+use crate::routes::category;
+
 // Handler that requires authentication
 // Axum automatically runs the AuthenticatedUser extractor before this handler
 // If the extractor fails (invalid/missing token), this handler is NEVER reached.
@@ -32,13 +34,19 @@ pub async fn get_authenticated_user_info(
 
 // Function to create the /me sub-router
 pub fn me_routes(app_state: AppState) -> Router {
-     Router::new()
-        // Define a protected route
-        .route("/", get(get_authenticated_user_info)) // GET /api/me
-        // Add more protected routes under /me here (e.g., /api/me/categories, /api/me/events)
-        // Note: Since this entire router is nested under /api/me, all routes defined here
-        // implicitly require authentication *if* the AuthenticatedUser extractor is used in the handler.
-        // If you had routes within /me that should NOT be protected, you'd need a different approach,
-        // but for a /me path, protecting everything is standard.
-        .with_state(app_state) // Make AppState available to handlers in this router
+    // Create the categories router, passing AppState
+    let categories_router = category::categories_routes(app_state.clone());
+
+    Router::new()
+       // Define the base protected route /api/me
+       .route("/", get(get_authenticated_user_info))
+       // Nest the categories router under /api/me/categories
+       .nest("/categories", categories_router)
+       // Add more feature routes here later (events, deadlines, sync)
+       // .nest("/events", events::events_routes(app_state.clone()))
+       // .nest("/deadlines", deadlines::deadlines_routes(app_state.clone()))
+       // .route("/sync", get(me_handler::sync_owned_data)) // Example sync route
+
+       // Make AppState available to direct /me handlers (like get_authenticated_user_info)
+       .with_state(app_state)
 }

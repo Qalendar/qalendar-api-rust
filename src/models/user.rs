@@ -1,10 +1,12 @@
 use serde::{Deserialize, Serialize};
 use validator::Validate; // Make sure validator is imported
 use chrono::{DateTime, Utc, NaiveDate};
+use sqlx::FromRow; // Needed for sqlx to map database rows
 
 // --- API Payloads ---
 
 #[derive(Deserialize, Validate, Debug)]
+#[serde(rename_all = "camelCase")]
 pub struct RegisterUserPayload {
     #[validate(required, length(min = 1, max = 100))]
     pub display_name: Option<String>, // Use Option for required validation message
@@ -21,6 +23,7 @@ pub struct RegisterUserPayload {
 }
 
 #[derive(Deserialize, Validate, Debug)]
+#[serde(rename_all = "camelCase")]
 pub struct LoginUserPayload {
     #[validate(required, email)]
     pub email: Option<String>,
@@ -31,6 +34,7 @@ pub struct LoginUserPayload {
 // --- API Responses ---
 
 #[derive(Serialize, Debug)]
+#[serde(rename_all = "camelCase")]
 pub struct UserData {
     #[serde(rename = "userId")] // Match frontend expectation
     pub user_id: i32,
@@ -56,7 +60,8 @@ pub struct AuthResponse {
 // --- Database Model ---
 
 // Represents the structure in the 'users' table
-#[derive(sqlx::FromRow, Debug)] // Automatically map rows to this struct
+#[derive(FromRow, Debug, Serialize)] // Automatically map rows to this struct
+#[serde(rename_all = "camelCase")]
 pub struct User {
     pub user_id: i32,
     pub display_name: String,
