@@ -19,6 +19,10 @@ pub enum AppError {
     ConfigurationError(String), // For config loading errors
     InternalServerError(String), // Catch-all for unexpected errors
     // Add other specific errors as needed
+    CategoryNotFound,
+    CategoryNameAlreadyExists, // For unique constraint violation
+    // Add more specific errors as needed for other entities
+    ItemNotFound, // More generic error for event/deadline/etc. if preferred
 }
 
 // How AppError should be converted into an HTTP response
@@ -65,7 +69,11 @@ impl IntoResponse for AppError {
             AppError::InternalServerError(msg) => {
                 tracing::error!("Internal Server Error: {}", msg);
                 (StatusCode::INTERNAL_SERVER_ERROR, "An unexpected error occurred".to_string())
-            }
+            },
+            AppError::CategoryNotFound => (StatusCode::NOT_FOUND, "Category not found".to_string()),
+            AppError::CategoryNameAlreadyExists => (StatusCode::CONFLICT, "A category with this name already exists".to_string()),
+             // Add a generic ItemNotFound if you added that
+            AppError::ItemNotFound => (StatusCode::NOT_FOUND, "Requested item not found".to_string()),
         };
 
         let body = Json(json!({ "error": error_message }));
@@ -76,8 +84,21 @@ impl IntoResponse for AppError {
 // Convenience conversions using `?` operator
 impl From<sqlx::Error> for AppError {
     fn from(e: sqlx::Error) -> Self {
-        // Basic check: could refine to differentiate connection vs query errors better if needed
-        AppError::DatabaseError(e)
+        // Check if it's a unique constraint violation for categories
+        if let sqlx::Error::Database(db_error) = &e {
+            // PostgreSQL unique violation error code is often "23505"
+            // Check your database driver docs for exact code if needed
+            if let Some(code) = db_error.code() {
+                if code.as_ref() == "23505" {
+                    // You might need more specific checks if other unique constraints exist
+                    // For now, assume 23505 on category INSERT implies name conflict
+                     tracing::warn!("Database Unique Constraint Error: {:?}", e);
+                    return AppError::CategoryNameAlreadyExists;
+                }
+            }
+        }
+        tracing::error!("Unmapped Database Error: {:?}", e);
+        AppError::DatabaseError(e) // Fallback to generic DB error
     }
 }
 
