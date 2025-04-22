@@ -22,7 +22,8 @@ pub enum AppError {
     CategoryNotFound,
     CategoryNameAlreadyExists, // For unique constraint violation
     // Add more specific errors as needed for other entities
-    ItemNotFound, // More generic error for event/deadline/etc. if preferred
+    DeadlineNotFound,
+    // ItemNotFound, // More generic error for event/deadline/etc. if preferred
 }
 
 // How AppError should be converted into an HTTP response
@@ -72,8 +73,9 @@ impl IntoResponse for AppError {
             },
             AppError::CategoryNotFound => (StatusCode::NOT_FOUND, "Category not found".to_string()),
             AppError::CategoryNameAlreadyExists => (StatusCode::CONFLICT, "A category with this name already exists".to_string()),
-             // Add a generic ItemNotFound if you added that
-            AppError::ItemNotFound => (StatusCode::NOT_FOUND, "Requested item not found".to_string()),
+            // // Add a generic ItemNotFound if you added that
+            // AppError::ItemNotFound => (StatusCode::NOT_FOUND, "Requested item not found".to_string()),
+            AppError::DeadlineNotFound => (StatusCode::NOT_FOUND, "Deadline not found or not accessible".to_string()),
         };
 
         let body = Json(json!({ "error": error_message }));
