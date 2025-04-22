@@ -147,12 +147,23 @@ pub async fn update_deadline(
     };
 
     // Check if the provided category_id exists and belongs to the user if it's being updated
-     if payload.category_id.is_some() {
-         let cat_id = payload.category_id.unwrap(); // Safe unwrap because we checked is_some()
-         // Handle None category explicitly: if payload sends null/None category_id, set it to NULL
-         if cat_id <= 0 { // Using <= 0 as convention for "unset" or "null" category ID
-             deadline_to_update.category_id = None;
-         } else {
+     if let Some(cat_id) = payload.category_id {
+         validate_positive_i32(cat_id)?; // Ensure category_id is strictly positive
+         let category_exists_for_user: bool = sqlx::query_scalar(
+             "SELECT EXISTS(SELECT 1 FROM categories WHERE category_id = $1 AND user_id = $2)"
+         )
+         .bind(cat_id)
+         .bind(user_id)
+         .fetch_one(&state.pool)
+         .await?;
+
+         if !category_exists_for_user {
+             return Err(AppError::CategoryNotFound); // Return CategoryNotFound if it doesn't exist or belong to user
+         }
+         deadline_to_update.category_id = Some(cat_id); // Update the category_id
+     } else {
+         deadline_to_update.category_id = None; // Explicitly unset the category if None is provided
+     }
             let category_exists_for_user: bool = sqlx::query_scalar(
                 "SELECT EXISTS(SELECT 1 FROM categories WHERE category_id = $1 AND user_id = $2)"
             )
