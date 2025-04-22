@@ -1,6 +1,6 @@
 use crate::config::Config;
 use crate::errors::AppError;
-use jsonwebtoken::{encode, EncodingKey, Header };
+use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation };
 // use jsonwebtoken::{DecodingKey, Validation, Algorithm, decode, TokenData};
 use serde::{Deserialize, Serialize};
 use chrono::Utc;
@@ -27,6 +27,17 @@ pub fn create_token(user_id: i32, config: &Config) -> Result<String, AppError> {
     let encoding_key = EncodingKey::from_secret(config.jwt_secret.as_ref());
 
     encode(&header, &claims, &encoding_key).map_err(AppError::from)
+}
+
+pub fn validate_token(token: &str, config: &Config) -> Result<Claims, AppError> {
+    let decoding_key = DecodingKey::from_secret(config.jwt_secret.as_ref());
+    let mut validation = Validation::default(); // Use default validation which checks expiration ('exp')
+    // Optional: if you add 'iat' (issued at) claim, you might want to add a leeway:
+    // validation.leeway = 5; // Allow for minor clock skew up to 5 seconds
+
+    decode::<Claims>(token, &decoding_key, &mut validation) // Pass mut validation
+        .map(|data| data.claims) // Extract the claims from the token data
+        .map_err(AppError::from) // Convert jsonwebtoken errors to AppError
 }
 
 // pub fn validate_token(token: &str, config: &Config) -> Result<Claims, AppError> {

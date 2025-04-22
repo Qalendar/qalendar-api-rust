@@ -24,5 +24,7 @@ tracing = "0.1.41"                                         # Logging framework
 tracing-subscriber = { version = "0.3.19", features = ["env-filter"] } # Logging subscriber
 uuid = { version = "1.16.0", features = ["v4", "serde"] }    # UUID generation
 axum-server = "0.7.2"
-tower-http = { version = "0.6.2", features = ["cors", "trace"] }
+tower-http = { version = "0.6.2", features = ["cors", "trace", "auth"] }
 http = "1.3.1"
+async-trait = "0.1.88"
+axum-extra = { version = "0.10.1", features = ["typed-header"] }
