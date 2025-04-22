@@ -32,7 +32,7 @@ where
     type Rejection = AppError; // Our custom AppError can be the rejection type
     
     async fn from_request_parts(
-        parts: & mut http::request::Parts, state: & AppState
+        parts: &mut http::request::Parts, state: &AppState
     ) -> Result<Self, Self::Rejection> {
         // Extract the Bearer token from the Authorization header
         let TypedHeader(Authorization(bearer)) = parts.extract::<TypedHeader<Authorization<Bearer>>>()
