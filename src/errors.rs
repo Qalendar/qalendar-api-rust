@@ -3,6 +3,7 @@ use axum::{
     response::{IntoResponse, Response},
     Json,
 };
+use rrule::RRuleError;
 use serde_json::json;
 use validator::ValidationErrors;
 
@@ -24,6 +25,9 @@ pub enum AppError {
     // Add more specific errors as needed for other entities
     DeadlineNotFound,
     // ItemNotFound, // More generic error for event/deadline/etc. if preferred
+    EventNotFound,
+    EventExceptionNotFound,
+    InvalidRecurrenceRule(String),
 }
 
 // How AppError should be converted into an HTTP response
@@ -76,6 +80,9 @@ impl IntoResponse for AppError {
             // // Add a generic ItemNotFound if you added that
             // AppError::ItemNotFound => (StatusCode::NOT_FOUND, "Requested item not found".to_string()),
             AppError::DeadlineNotFound => (StatusCode::NOT_FOUND, "Deadline not found or not accessible".to_string()),
+            AppError::EventNotFound => (StatusCode::NOT_FOUND, "Event not found or not accessible".to_string()),
+            AppError::EventExceptionNotFound => (StatusCode::NOT_FOUND, "Event exception not found or not accessible".to_string()),
+            AppError::InvalidRecurrenceRule(msg) => (StatusCode::BAD_REQUEST, format!("Invalid recurrence rule: {}", msg)),
         };
 
         let body = Json(json!({ "error": error_message }));
@@ -119,5 +126,12 @@ impl From<bcrypt::BcryptError> for AppError {
 impl From<jsonwebtoken::errors::Error> for AppError {
     fn from(e: jsonwebtoken::errors::Error) -> Self {
         AppError::JwtError(e)
+    }
+}
+
+// Add conversion from rrule::RRuleError
+impl From<RRuleError> for AppError {
+    fn from(e: RRuleError) -> Self {
+        AppError::InvalidRecurrenceRule(e.to_string())
     }
 }

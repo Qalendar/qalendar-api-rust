@@ -19,6 +19,7 @@ mod handlers; // Declares auth_handler module inside
 mod auth; // Declares jwt module inside
 mod utils; // Declares security module inside
 mod middleware; // Declares auth module inside
+mod calendar; // Declares calendar module inside
 
 use config::Config; // Use the Config struct
 use errors::AppError; // Use our custom error type

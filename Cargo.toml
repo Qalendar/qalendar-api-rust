@@ -30,3 +30,4 @@ async-trait = "0.1.88"
 axum-extra = { version = "0.10.1", features = ["typed-header"] }
 regex = "1.11.1"
 sqlx-cli = { version = "0.8.5", features = ["rustls"] }
+rrule = { version = "0.14.0", features = ["exrule", "serde", "serde_with"] }

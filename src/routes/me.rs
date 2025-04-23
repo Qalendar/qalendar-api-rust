@@ -7,6 +7,7 @@ use serde_json::json; // For simple JSON responses
 
 use crate::routes::category;
 use crate::routes::deadline;
+use crate::routes::event;
 
 // Handler that requires authentication
 // Axum automatically runs the AuthenticatedUser extractor before this handler
@@ -38,6 +39,7 @@ pub fn me_routes(app_state: AppState) -> Router {
     // Create the categories router, passing AppState
     let categories_router = category::categories_routes(app_state.clone());
     let deadlines_router = deadline::deadlines_routes(app_state.clone());
+    let events_router = event::events_routes(app_state.clone()); // <-- Create the events router
 
     Router::new()
        // Define the base protected route /api/me
@@ -47,6 +49,21 @@ pub fn me_routes(app_state: AppState) -> Router {
               // Nest the deadlines router under /api/me/deadlines
 
        .nest("/deadlines", deadlines_router)
-       // Make AppState available to direct /me handlers (like get_authenticated_user_info)
+       .nest("/events", events_router) // <-- Nested event CRUD routes here
+
+       // --- Dedicated route for fetching calendar items for a date range ---
+       // This will return CalendarEventOccurrence and Deadlines within the range
+    //    .route("/calendar", get(event_handler::get_events_in_range)) // Example route for fetching events+deadlines in range
+                                                                     // Note: This specific handler only fetches events for now.
+                                                                     // We'll need to update this handler or add another one
+                                                                     // that fetches BOTH events and deadlines for the calendar view.
+                                                                     // The sync handler might serve a similar purpose but for *changes*.
+
+       // Add more feature routes here later (sync, shares, invitations)
+       // .route("/sync", get(me_handler::sync_owned_data)) // Sync handler will be complex
+       // .nest("/shares", shares::shares_routes(app_state.clone())) // Sharing routes
+       // .nest("/invitations", invitations::invitations_routes(app_state.clone())) // Invitation routes
+
+       // Make AppState available to direct /me handlers
        .with_state(app_state)
 }
