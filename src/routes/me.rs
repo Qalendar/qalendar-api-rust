@@ -49,6 +49,7 @@ pub fn me_routes(app_state: AppState) -> Router {
        // .nest("/events", events::events_routes(app_state.clone()))
        // .route("/sync", get(me_handler::sync_owned_data)) // Example sync route
 
+       .nest("/deadlines", deadlines_router)
        // Make AppState available to direct /me handlers (like get_authenticated_user_info)
        .with_state(app_state)
 }

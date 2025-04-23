@@ -28,7 +28,6 @@ pub enum AppError {
     CannotModifySharedItem, // Trying to edit/delete an item you don't own via a share
     CannotInviteToNonOwnedEvent, // Trying to invite to an event you don't own
     CannotRespondToNonInvitedEvent, // Trying to respond to an invitation you didn't receive
-    // ... Add more as needed later
 }
 
 // How AppError should be converted into an HTTP response

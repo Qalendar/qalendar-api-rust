@@ -44,7 +44,6 @@ pub struct Deadline {
     pub updated_at: DateTime<Utc>,
 }
 
-
 // --- API Payloads ---
 
 // For creating a Deadline
