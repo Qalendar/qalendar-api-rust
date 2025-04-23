@@ -19,10 +19,16 @@ pub enum AppError {
     ConfigurationError(String), // For config loading errors
     InternalServerError(String), // Catch-all for unexpected errors
     // Add other specific errors as needed
+    DeadlineNotFound,
+    EventNotFound,
     CategoryNotFound,
     CategoryNameAlreadyExists, // For unique constraint violation
-    // Add more specific errors as needed for other entities
-    // ItemNotFound, // More generic error for event/deadline/etc. if preferred
+    ShareNotFound,         // For calendar_shares
+    InvitationNotFound,    // For event_invitations
+    CannotModifySharedItem, // Trying to edit/delete an item you don't own via a share
+    CannotInviteToNonOwnedEvent, // Trying to invite to an event you don't own
+    CannotRespondToNonInvitedEvent, // Trying to respond to an invitation you didn't receive
+    // ... Add more as needed later
 }
 
 // How AppError should be converted into an HTTP response
@@ -70,10 +76,15 @@ impl IntoResponse for AppError {
                 tracing::error!("Internal Server Error: {}", msg);
                 (StatusCode::INTERNAL_SERVER_ERROR, "An unexpected error occurred".to_string())
             },
+            AppError::DeadlineNotFound => (StatusCode::NOT_FOUND, "Deadline not found".to_string()),
+            AppError::EventNotFound => (StatusCode::NOT_FOUND, "Event not found".to_string()),
             AppError::CategoryNotFound => (StatusCode::NOT_FOUND, "Category not found".to_string()),
+            AppError::ShareNotFound => (StatusCode::NOT_FOUND, "Share not found".to_string()),
+            AppError::InvitationNotFound => (StatusCode::NOT_FOUND, "Invitation not found".to_string()),
             AppError::CategoryNameAlreadyExists => (StatusCode::CONFLICT, "A category with this name already exists".to_string()),
-            //  // Add a generic ItemNotFound if you added that
-            // AppError::ItemNotFound => (StatusCode::NOT_FOUND, "Requested item not found".to_string()),
+            AppError::CannotModifySharedItem => (StatusCode::FORBIDDEN, "Cannot modify item shared with you".to_string()),
+            AppError::CannotInviteToNonOwnedEvent => (StatusCode::FORBIDDEN, "Cannot invite to an event you do not own".to_string()),
+            AppError::CannotRespondToNonInvitedEvent => (StatusCode::FORBIDDEN, "Cannot respond to an invitation you did not receive".to_string()),
         };
 
         let body = Json(json!({ "error": error_message }));
