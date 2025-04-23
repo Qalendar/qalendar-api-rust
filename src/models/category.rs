@@ -42,8 +42,8 @@ pub struct UpdateCategoryPayload {
     #[validate(length(min = 1, max = 50), custom(function = "validate_hex_color"))] // Allow updating color
     pub color: Option<String>,
 
-    // Allow updating visibility
-    pub is_visible: Option<bool>,
+    // // Allow updating visibility
+    // pub is_visible: Option<bool>,
 }
 
 // Custom validator for hex color format
