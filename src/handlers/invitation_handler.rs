@@ -5,14 +5,9 @@ use axum::{
 use sqlx::{PgPool, Row, types::chrono::Utc}; // Added Row for exists check
 use validator::Validate;
 use crate::{
-    AppState,
-    errors::AppError,
-    models::{
-        event_invitation::{EventInvitation, InviteUserPayload, InvitationResponsePayload, ListMyInvitationsParams},
-        enums::EventInvitationStatus, // Import the ENUM
-        user::User, // Need User model to look up invitee by email
-    },
-    middleware::auth::AuthenticatedUser,
+    errors::AppError, middleware::auth::AuthenticatedUser, models::{
+        enums::EventInvitationStatus, event_invitation::{EventInvitation, EventInvitationResponseItem, InvitationResponsePayload, InviteUserPayload, ListEventInvitationsParams, ListMyInvitationsParams, MyInvitationResponseItem}, user::User // Need User model to look up invitee by email
+    }, AppState
 };
 
 // --- Helper: Check if event exists and is owned by the user ---
@@ -122,33 +117,59 @@ pub async fn create_invitation(
 }
 
 // --- OWNER ACTION: List Invitations for an Event (GET /api/me/events/:event_id/invitations) ---
-// Might want to return invited user's display_name/email here too, requires JOIN or separate query
+// NOW returns EventInvitationResponseItem (with invited user details) and supports status filter
 pub async fn list_invitations_for_event(
     State(state): State<AppState>,
     AuthenticatedUser { user_id: owner_user_id }: AuthenticatedUser,
     Path(event_id): Path<i32>,
-) -> Result<Json<Vec<EventInvitation>>, AppError> {
-     // 1. Check if the event exists and is owned by the authenticated user
+    Query(params): Query<ListEventInvitationsParams>, // Accept query params for filtering
+) -> Result<Json<Vec<EventInvitationResponseItem>>, AppError> { // Return new response item struct
+    // 1. Check if the event exists and is owned by the authenticated user
     if !check_event_ownership(&state.pool, event_id, owner_user_id).await? {
-        return Err(AppError::EventNotFound); // Or AppError::CannotViewInvitationsForNonOwnedEvent
+        return Err(AppError::EventNotFound);
     }
 
-    // 2. Fetch invitations for this event
-    let invitations = sqlx::query_as!(
-        EventInvitation,
+    // 2. Build query - Base query joins invitations with user details
+    let mut query_builder = sqlx::QueryBuilder::new(
         r#"
         SELECT
-            invitation_id, event_id, owner_user_id, invited_user_id, status as "status!: _",
-            created_at as "created_at!", updated_at as "updated_at!"
-        FROM event_invitations
-        WHERE event_id = $1 AND owner_user_id = $2 -- Ensure only fetch invites for YOUR event
-        ORDER BY created_at -- Optional: order
-        "#,
-        event_id,
-        owner_user_id
-    )
-    .fetch_all(&state.pool)
-    .await?;
+            ei.invitation_id,
+            ei.event_id,
+            ei.owner_user_id,
+            ei.invited_user_id,
+            ei.status,
+            ei.created_at,
+            ei.updated_at,
+            u.user_id,
+            u.display_name,
+            u.email,
+            u.date_of_birth,
+            u.email_verified,
+            u.created_at AS user_created_at,
+            u.updated_at AS user_updated_at
+        FROM event_invitations ei
+        JOIN users u ON ei.invited_user_id = u.user_id
+        WHERE ei.event_id = 
+        "#
+    );
+    
+    // Add parameters with push_bind instead of using $1, $2
+    query_builder.push_bind(event_id);
+    
+    query_builder.push(" AND ei.owner_user_id = ");
+    query_builder.push_bind(owner_user_id);
+
+    // 3. Conditionally add WHERE clause for status filtering
+    if let Some(status_filter) = params.status {
+        query_builder.push(" AND ei.status = ");
+        query_builder.push_bind(status_filter as EventInvitationStatus);
+    }
+
+    // 4. Build and fetch
+    let invitations = query_builder
+        .build_query_as::<EventInvitationResponseItem>()
+        .fetch_all(&state.pool)
+        .await?;
 
     Ok(Json(invitations))
 }
@@ -188,53 +209,59 @@ pub async fn revoke_invitation(
 }
 
 // --- INVITEE ACTION: List My Invitations (GET /api/me/invitations) ---
-// Returns invitations received by the authenticated user.
-// Can filter by status using query parameters (e.g., ?status=pending)
+// NOW returns MyInvitationResponseItem (with event details) and supports status filter
 pub async fn list_my_invitations(
     State(state): State<AppState>,
-    AuthenticatedUser { user_id: invited_user_id }: AuthenticatedUser, // Renamed
-    Query(params): Query<ListMyInvitationsParams>, // Extract query parameters
-) -> Result<Json<Vec<EventInvitation>>, AppError> {
+    AuthenticatedUser { user_id: invited_user_id }: AuthenticatedUser,
+    Query(params): Query<ListMyInvitationsParams>, // Accept query params for filtering
+) -> Result<Json<Vec<MyInvitationResponseItem>>, AppError> { // Return new response item struct
 
-    let invitations = if let Some(status_filter) = params.status {
-        // Query with status filter
-        sqlx::query_as!(
-            EventInvitation,
-            r#"
-            SELECT
-                invitation_id, event_id, owner_user_id, invited_user_id, status as "status!: _",
-                created_at as "created_at!", updated_at as "updated_at!"
-            FROM event_invitations
-            WHERE invited_user_id = $1 AND status = $2
-            ORDER BY created_at
-            "#,
-            invited_user_id,
-            status_filter as EventInvitationStatus // Cast the ENUM
-        )
-        .fetch_all(&state.pool)
-        .await?
-    } else {
-        // Query without status filter
-        sqlx::query_as!(
-            EventInvitation,
-            r#"
-            SELECT
-                invitation_id, event_id, owner_user_id, invited_user_id, status as "status!: _",
-                created_at as "created_at!", updated_at as "updated_at!"
-            FROM event_invitations
-            WHERE invited_user_id = $1
-            ORDER BY created_at
-            "#,
-            invited_user_id
-        )
-        .fetch_all(&state.pool)
-        .await?
-    };
+    // 1. Build query - Base query joins invitations with event details
+    let mut query_builder = sqlx::QueryBuilder::new(
+        r#"
+        SELECT
+            ei.invitation_id,
+            ei.event_id,
+            ei.owner_user_id,
+            ei.invited_user_id, -- Should match invited_user_id = $1
+            ei.status, -- Maps to status as "status!: _" via query_as!
+            ei.created_at,
+            ei.updated_at,
+            -- Event Details (aliased to fit EventDetailsForInvitation struct)
+            e.event_id, -- maps to event.event_id
+            e.user_id, -- maps to event.user_id (owner_user_id)
+            e.category_id, -- maps to event.category_id
+            e.title, -- maps to event.title
+            e.description, -- maps to event.description
+            e.start_time, -- maps to event.start_time
+            e.end_time, -- maps to event.end_time
+            e.location, -- maps to event.location
+            e.rrule, -- maps to event.rrule
+            e.created_at AS event_created_at, -- maps to event.event_created_at
+            e.updated_at AS event_updated_at -- maps to event.event_updated_at
+        FROM event_invitations ei
+        JOIN events e ON ei.event_id = e.event_id
+        WHERE ei.invited_user_id =
+        "#
+    );
 
-    // Note: Frontend will likely need event details here (title, time etc).
-    // You'll probably need to perform a JOIN with the 'events' table in the query
-    // or fetch event details separately if needed on this endpoint.
-    // For sync, you will JOIN with events in the sync handler.
+    // Add parameters with push_bind instead of using $1, $2
+    query_builder.push_bind(invited_user_id);
+
+
+    // 2. Conditionally add WHERE clause for status filtering
+    if let Some(status_filter) = params.status {
+        query_builder.push(" AND ei.status = ");
+        query_builder.push_bind(status_filter as EventInvitationStatus);
+    }
+    // 3. Add ordering if desired
+    query_builder.push(" ORDER BY e.start_time"); // Order by event start time
+
+    // 4. Build and fetch
+    let invitations = query_builder
+        .build_query_as::<MyInvitationResponseItem>() // Use the new response struct
+        .fetch_all(&state.pool)
+        .await?;
 
     Ok(Json(invitations))
 }

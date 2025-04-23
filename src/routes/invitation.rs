@@ -6,7 +6,7 @@ use crate::AppState; // Import AppState
 use crate::handlers::invitation_handler; // Import invitation handlers
 
 // Function to create the /api/me/invitations sub-router (Invitee actions)
-pub fn invitation_routes(app_state: AppState) -> Router {
+pub fn invitations_routes(app_state: AppState) -> Router<AppState> {
      Router::new()
         // Base route: /api/me/invitations (List my invitations)
         .route("/", get(invitation_handler::list_my_invitations))
