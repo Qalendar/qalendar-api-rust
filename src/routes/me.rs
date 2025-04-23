@@ -5,7 +5,7 @@ use crate::middleware::auth::AuthenticatedUser; // Import the extractor
 use axum::Json; // For returning JSON responses
 use serde_json::json; // For simple JSON responses
 
-use super::{category, deadline};
+use super::{category, deadline, event};
 
 // Handler that requires authentication
 // Axum automatically runs the AuthenticatedUser extractor before this handler
@@ -37,13 +37,14 @@ pub fn me_routes(app_state: AppState) -> Router {
     // Create the categories router, passing AppState
     let categories_router = category::categories_routes(app_state.clone());
     let deadlines_router = deadline::deadlines_routes(app_state.clone());
+    let events_router = event::events_routes(app_state.clone());
 
     Router::new()
        // Define the base protected route /api/me
-       .route("/", get(get_authenticated_user_info))
-       // Nest the categories router under /api/me/categories
-       .nest("/categories", categories_router)
-       .nest("/deadlines", deadlines_router)
+       .route("/", get(get_authenticated_user_info)) // /api/me
+       .nest("/categories", categories_router) // /api/me/categories
+       .nest("/deadlines", deadlines_router)   // /api/me/deadlines
+       .nest("/events", events_router) // /api/me/events
        // Add more feature routes here later (events, deadlines, sync)
        // .nest("/events", events::events_routes(app_state.clone()))
        // .route("/sync", get(me_handler::sync_owned_data)) // Example sync route
