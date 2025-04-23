@@ -3,3 +3,4 @@ pub mod me_handler;
 pub mod category_handler;
 pub mod deadline_handler;
 pub mod event_handler;
+pub mod invitation_handler;

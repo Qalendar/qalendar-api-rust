@@ -137,7 +137,7 @@ CREATE TABLE event_invitations (
     event_id INTEGER NOT NULL,
     owner_user_id INTEGER NOT NULL,
     invited_user_id INTEGER NOT NULL,
-    status event_invitation_status NOT NULL DEFAULT 'pending',
+    status event_invitation_status DEFAULT 'pending',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     FOREIGN KEY (event_id) REFERENCES events(event_id) ON DELETE CASCADE,
