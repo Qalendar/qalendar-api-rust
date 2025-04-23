@@ -13,7 +13,7 @@ use crate::{
 use chrono::DateTime; // For parsing date strings
 use crate::utils::calendar::parse_timestamp; // Import the helper function for parsing timestamps
 
-use crate::models::deadline::{DeadlinePriorityLevel, WorkloadUnitType}; // Import enums
+use crate::models::enums::{DeadlinePriorityLevel, WorkloadUnitType}; // Import enums
 
 // --- Create Deadline ---
 pub async fn create_deadline(
@@ -167,18 +167,27 @@ pub async fn update_deadline(
     if let Some(title) = payload.title {
         deadline_to_update.title = title;
     }
-     // category_id can be set to NULL
-    if payload.category_id.is_some() || (payload.category_id.is_none() && payload.category_id.as_ref().is_some()) {
-         // Handle explicit null (Option::None) vs not provided (Option::None in payload struct)
-         // If payload.category_id is Some(id), use id
-         // If payload.category_id is None AND the original JSON contained "categoryId": null, set to None
-         // If payload.category_id is None AND the field was missing in JSON, leave as is
-         deadline_to_update.category_id = payload.category_id; // This handles Some(id) and null correctly
-     }
-     // If description is explicitly set to null in JSON, it should become None
-     if payload.description.is_some() || (payload.description.is_none() && payload.description.as_ref().is_some()) {
-         deadline_to_update.description = payload.description;
-     }
+    // First validate if the new category_id exists and belongs to the user
+    if let Some(new_cat_id) = payload.category_id {
+       let category_exists: Option<bool> = sqlx::query_scalar!(
+            "SELECT EXISTS(SELECT 1 FROM categories WHERE category_id = $1 AND user_id = $2)",
+            new_cat_id,
+            user_id
+        )
+        .fetch_one(&state.pool)
+        .await?;
+
+        if category_exists != Some(true) {
+             return Err(AppError::CategoryNotFound);
+        }
+    } else {
+        // If category_id is not provided, keep the existing one
+        deadline_to_update.category_id = deadline_to_update.category_id;
+    }
+    // If description is explicitly set to null in JSON, it should become None
+    if payload.description.is_some() || (payload.description.is_none() && payload.description.as_ref().is_some()) {
+        deadline_to_update.description = payload.description;
+    }
 
     if let Some(due_date_str) = payload.due_date {
         deadline_to_update.due_date = parse_timestamp(&due_date_str)?;
@@ -198,22 +207,6 @@ pub async fn update_deadline(
      // their Options will be None, and we don't overwrite deadline_to_update.workload_magnitude/unit.
      // If one was in the payload but the other wasn't, payload.validate() already caught it.
      // If both were in the payload and were nulls, they become Option::None, and we set deadline_to_update.workload_magnitude/unit to None.
-
-
-    // Optional: If category_id is updated, validate it exists and belongs to the user
-    if let Some(cat_id) = deadline_to_update.category_id {
-       let category_exists: Option<bool> = sqlx::query_scalar!(
-            "SELECT EXISTS(SELECT 1 FROM categories WHERE category_id = $1 AND user_id = $2)",
-            cat_id,
-            user_id
-        )
-        .fetch_one(&state.pool)
-        .await?;
-
-        if category_exists != Some(true) {
-             return Err(AppError::CategoryNotFound);
-        }
-    }
 
 
     // Perform the update query

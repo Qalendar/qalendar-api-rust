@@ -3,37 +3,16 @@ use validator::{Validate, ValidationError};
 use chrono::{DateTime, Utc};
 use sqlx::FromRow;
 
+use crate::models::enums::{DeadlinePriorityLevel, WorkloadUnitType}; // Import the enums from a central location
+
 // --- Database Models ---
-
-// Define the ENUM types as Rust enums
-#[derive(Debug, Clone, Copy, PartialEq, Eq, sqlx::Type, Serialize, Deserialize)] // sqlx::Type for database mapping
-#[sqlx(type_name = "deadline_priority_level", rename_all = "lowercase")] // Match DB ENUM name and values
-#[serde(rename_all = "camelCase")]
-
-#[derive(Default)]
-pub enum DeadlinePriorityLevel {
-    #[default]
-    Normal,
-    Important,
-    Urgent,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, sqlx::Type, Serialize, Deserialize)]
-#[sqlx(type_name = "workload_unit_type", rename_all = "lowercase")]
-#[serde(rename_all = "camelCase")]
-pub enum WorkloadUnitType {
-    Minutes,
-    Hours,
-    Days,
-}
-
 
 #[derive(Debug, FromRow, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Deadline {
     pub deadline_id: i32,
     pub user_id: i32, // Owner
-    pub category_id: Option<i32>, // Optional link to category
+    pub category_id: i32, // Link to category
     pub title: String,
     pub description: Option<String>, // Allow NULL in DB
     pub due_date: DateTime<Utc>, // TIMESTAMP WITH TIME ZONE
