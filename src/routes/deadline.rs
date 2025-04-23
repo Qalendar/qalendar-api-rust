@@ -12,13 +12,13 @@ pub fn deadlines_routes(app_state: AppState) -> Router<AppState> {
         .route(
             "/",
             post(deadline_handler::create_deadline) // POST to create
-            .get(deadline_handler::get_deadlines) // GET to list all
+            .get(deadline_handler::get_deadlines)  // GET to list all
         )
         // Routes with ID parameter: /api/me/deadlines/{deadline_id}
         .route(
             "/{deadline_id}",
             get(deadline_handler::get_deadline_by_id) // GET by ID
-            .put(deadline_handler::update_deadline) // PUT to update by ID
+            .put(deadline_handler::update_deadline)   // PUT to update by ID
             .delete(deadline_handler::delete_deadline) // DELETE by ID
         )
         // Make AppState available to all handlers within this router

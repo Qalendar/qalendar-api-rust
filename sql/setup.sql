@@ -68,7 +68,7 @@ CREATE TYPE share_privacy_level AS ENUM ('full_details', 'busy_only');
 CREATE TABLE deadlines (
     deadline_id SERIAL PRIMARY KEY,
     user_id INTEGER NOT NULL,
-    category_id INTEGER,
+    category_id INTEGER NOT NULL,
     title VARCHAR(255) NOT NULL,
     description TEXT,
     due_date TIMESTAMP WITH TIME ZONE NOT NULL,
@@ -88,7 +88,7 @@ CREATE TRIGGER set_timestamp_deadlines BEFORE UPDATE ON deadlines FOR EACH ROW E
 CREATE TABLE events (
     event_id SERIAL PRIMARY KEY,
     user_id INTEGER NOT NULL,
-    category_id INTEGER,
+    category_id INTEGER NOT NULL,
     title VARCHAR(255) NOT NULL,
     description TEXT,
     start_time TIMESTAMP WITH TIME ZONE NOT NULL, -- For recurring, this is the start of the *first* instance

@@ -123,9 +123,9 @@ pub async fn update_category(
     if let Some(color) = payload.color {
         category_to_update.color = color;
     }
-    if let Some(is_visible) = payload.is_visible {
-        category_to_update.is_visible = is_visible;
-    }
+    // if let Some(is_visible) = payload.is_visible {
+    //     category_to_update.is_visible = is_visible;
+    // }
 
     // Perform the update query
     let updated_category = sqlx::query_as!(

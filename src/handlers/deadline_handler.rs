@@ -2,50 +2,55 @@ use axum::{
     extract::{State, Path, Json},
     http::StatusCode,
 };
-use sqlx;
+use sqlx::{PgPool, types::chrono::Utc};
 use validator::Validate;
 use crate::{
     AppState,
     errors::AppError,
-    models::deadline::{Deadline, CreateDeadlinePayload, UpdateDeadlinePayload},
+    models::deadline::{Deadline, CreateDeadlinePayload, UpdateDeadlinePayload}, // Import deadline models
     middleware::auth::AuthenticatedUser,
 };
-use chrono::{DateTime, Utc}; // Import for parsing dates
+use chrono::DateTime; // For parsing date strings
+use crate::utils::calendar::parse_timestamp; // Import the helper function for parsing timestamps
+
+use crate::models::deadline::{DeadlinePriorityLevel, WorkloadUnitType}; // Import enums
 
 // --- Create Deadline ---
 pub async fn create_deadline(
     State(state): State<AppState>,
     AuthenticatedUser { user_id }: AuthenticatedUser,
-    Json(payload): Json<CreateDeadlinePayload>,
+    Json(mut payload): Json<CreateDeadlinePayload>, // Use 'mut' because we modify it slightly
 ) -> Result<(StatusCode, Json<Deadline>), AppError> {
-    payload.validate()?; // Validate the input payload
+    payload.validate()?;
 
     let title = payload.title.unwrap();
-    let description = payload.description; // Optional
-    let due_date_str = payload.due_date.unwrap(); // Required field
-    let category_id = payload.category_id; // Optional
-    let priority = payload.priority.unwrap_or_default(); // Use default if not provided
-    let workload_magnitude = payload.workload_magnitude; // Optional
-    let workload_unit = payload.workload_unit; // Optional
+    let category_id = payload.category_id; // Option<i32> is fine
+    let description = payload.description; // Option<String> is fine
 
-    // Parse due_date string to DateTime<Utc>
-    let due_date: DateTime<Utc> = DateTime::parse_from_rfc3339(&due_date_str)
-        .map(|dt| dt.with_timezone(&Utc)) // Ensure it's Utc if timezone info is present
-        .map_err(|_| AppError::ValidationFailed(validator::ValidationErrors::new()))?; // Simple error for parse failure
+    // Parse the due_date string into DateTime<Utc>
+    let due_date_str = payload.due_date.unwrap(); // Required by validation
+    let due_date = parse_timestamp(&due_date_str)?;
 
+    // Priority defaults in the DB, use payload value if provided
+    let priority = payload.priority.unwrap_or_default(); // Requires Default trait on ENUM
 
-    // Optional: Check if category_id exists and belongs to the user if provided
+    let workload_magnitude = payload.workload_magnitude; // Option<i32>
+    let workload_unit = payload.workload_unit; // Option<WorkloadUnitType>
+
+    // Optional: Validate category_id exists and belongs to the user if provided
     if let Some(cat_id) = category_id {
-        let category_exists_for_user: bool = sqlx::query_scalar(
-            "SELECT EXISTS(SELECT 1 FROM categories WHERE category_id = $1 AND user_id = $2)"
+       let category_exists: Option<bool> = sqlx::query_scalar!(
+            "SELECT EXISTS(SELECT 1 FROM categories WHERE category_id = $1 AND user_id = $2)",
+            cat_id,
+            user_id
         )
-        .bind(cat_id)
-        .bind(user_id)
         .fetch_one(&state.pool)
         .await?;
 
-        if !category_exists_for_user {
-            return Err(AppError::CategoryNotFound); // Return CategoryNotFound if it doesn't exist or belong to user
+        if category_exists != Some(true) {
+             // Category ID is invalid or doesn't belong to the user
+             // Consider a more specific error like AppError::InvalidCategoryId
+             return Err(AppError::CategoryNotFound); // Re-using CategoryNotFound for now
         }
     }
 
@@ -55,16 +60,19 @@ pub async fn create_deadline(
         r#"
         INSERT INTO deadlines (user_id, category_id, title, description, due_date, priority, workload_magnitude, workload_unit)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-        RETURNING deadline_id, user_id, category_id as "category_id!: _", title, description as "description!: _", due_date, priority as "priority!: _", workload_magnitude as "workload_magnitude!: _", workload_unit as "workload_unit!: _", created_at as "created_at!", updated_at as "updated_at!"
+        RETURNING
+           deadline_id, user_id, category_id, title, description, due_date, priority as "priority!: _",
+           workload_magnitude as "workload_magnitude!: _", workload_unit as "workload_unit!: _",
+           created_at as "created_at!: _", updated_at as "updated_at!: _"
         "#,
         user_id,
         category_id,
         title,
         description,
         due_date,
-        priority as _, // Cast to the enum type
+        priority as DeadlinePriorityLevel, // Cast to the SQLx type alias
         workload_magnitude,
-        workload_unit.as_ref() as _, // Use as_ref() for the optional enum
+        workload_unit as Option<WorkloadUnitType>, // Cast to the SQLx type alias Option
     )
     .fetch_one(&state.pool)
     .await?;
@@ -80,10 +88,13 @@ pub async fn get_deadlines(
     let deadlines = sqlx::query_as!(
         Deadline,
         r#"
-        SELECT deadline_id, user_id, category_id as "category_id!: _", title, description as "description!: _", due_date, priority as "priority!: _", workload_magnitude as "workload_magnitude!: _", workload_unit as "workload_unit!: _", created_at as "created_at!", updated_at as "updated_at!"
+        SELECT
+           deadline_id, user_id, category_id, title, description, due_date, priority as "priority!: _",
+           workload_magnitude as "workload_magnitude!: _", workload_unit as "workload_unit!: _",
+           created_at as "created_at!: _", updated_at as "updated_at!: _"
         FROM deadlines
         WHERE user_id = $1
-        ORDER BY due_date, updated_at -- Order by due date, then last updated
+        ORDER BY due_date -- Optional: order by due date
         "#,
         user_id
     )
@@ -101,8 +112,11 @@ pub async fn get_deadline_by_id(
 ) -> Result<Json<Deadline>, AppError> {
     let deadline = sqlx::query_as!(
         Deadline,
-         r#"
-        SELECT deadline_id, user_id, category_id as "category_id!: _", title, description as "description!: _", due_date, priority as "priority!: _", workload_magnitude as "workload_magnitude!: _", workload_unit as "workload_unit!: _", created_at as "created_at!", updated_at as "updated_at!"
+        r#"
+        SELECT
+           deadline_id, user_id, category_id, title, description, due_date, priority as "priority!: _",
+           workload_magnitude as "workload_magnitude!: _", workload_unit as "workload_unit!: _",
+           created_at as "created_at!: _", updated_at as "updated_at!: _"
         FROM deadlines
         WHERE deadline_id = $1 AND user_id = $2 -- IMPORTANT: Check user_id!
         "#,
@@ -113,7 +127,7 @@ pub async fn get_deadline_by_id(
     .await?;
 
     match deadline {
-        Some(dl) => Ok(Json(dl)),
+        Some(d) => Ok(Json(d)),
         None => Err(AppError::DeadlineNotFound), // Return DeadlineNotFound error
     }
 }
@@ -125,13 +139,16 @@ pub async fn update_deadline(
     Path(deadline_id): Path<i32>,
     Json(payload): Json<UpdateDeadlinePayload>,
 ) -> Result<Json<Deadline>, AppError> {
-    payload.validate()?; // Validate the input payload
+    payload.validate()?;
 
-    // We need to check if the deadline exists AND belongs to the user first
+    // Fetch existing deadline to check ownership and get current values
     let existing_deadline = sqlx::query_as!(
-         Deadline,
-         r#"
-        SELECT deadline_id, user_id, category_id as "category_id!: _", title, description as "description!: _", due_date, priority as "priority!: _", workload_magnitude as "workload_magnitude!: _", workload_unit as "workload_unit!: _", created_at as "created_at!", updated_at as "updated_at!"
+        Deadline,
+        r#"
+        SELECT
+           deadline_id, user_id, category_id, title, description, due_date, priority as "priority!: _",
+           workload_magnitude as "workload_magnitude!: _", workload_unit as "workload_unit!: _",
+           created_at as "created_at!: _", updated_at as "updated_at!: _"
         FROM deadlines
         WHERE deadline_id = $1 AND user_id = $2
         "#,
@@ -142,55 +159,61 @@ pub async fn update_deadline(
     .await?;
 
     let mut deadline_to_update = match existing_deadline {
-        Some(dl) => dl,
+        Some(d) => d,
         None => return Err(AppError::DeadlineNotFound),
     };
-
-    // Check if the provided category_id exists and belongs to the user if it's being updated
-     if payload.category_id.is_some() {
-         let cat_id = payload.category_id.unwrap(); // Safe unwrap because we checked is_some()
-         // Handle None category explicitly: if payload sends null/None category_id, set it to NULL
-         if cat_id <= 0 { // Using <= 0 as convention for "unset" or "null" category ID
-             deadline_to_update.category_id = None;
-         } else {
-            let category_exists_for_user: bool = sqlx::query_scalar(
-                "SELECT EXISTS(SELECT 1 FROM categories WHERE category_id = $1 AND user_id = $2)"
-            )
-            .bind(cat_id)
-            .bind(user_id)
-            .fetch_one(&state.pool)
-            .await?;
-
-            if !category_exists_for_user {
-                return Err(AppError::CategoryNotFound); // Return CategoryNotFound if it doesn't exist or belong to user
-            }
-            deadline_to_update.category_id = Some(cat_id); // Update the category_id
-         }
-     }
-
 
     // Apply updates only if the field is provided in the payload
     if let Some(title) = payload.title {
         deadline_to_update.title = title;
     }
-    if payload.description.is_some() { // Handle explicit null for description
-        deadline_to_update.description = payload.description;
-    }
+     // category_id can be set to NULL
+    if payload.category_id.is_some() || (payload.category_id.is_none() && payload.category_id.as_ref().is_some()) {
+         // Handle explicit null (Option::None) vs not provided (Option::None in payload struct)
+         // If payload.category_id is Some(id), use id
+         // If payload.category_id is None AND the original JSON contained "categoryId": null, set to None
+         // If payload.category_id is None AND the field was missing in JSON, leave as is
+         deadline_to_update.category_id = payload.category_id; // This handles Some(id) and null correctly
+     }
+     // If description is explicitly set to null in JSON, it should become None
+     if payload.description.is_some() || (payload.description.is_none() && payload.description.as_ref().is_some()) {
+         deadline_to_update.description = payload.description;
+     }
+
     if let Some(due_date_str) = payload.due_date {
-        let due_date = DateTime::parse_from_rfc3339(&due_date_str)
-            .map(|dt| dt.with_timezone(&Utc))
-            .map_err(|_| AppError::ValidationFailed(validator::ValidationErrors::new()))?;
-        deadline_to_update.due_date = due_date;
+        deadline_to_update.due_date = parse_timestamp(&due_date_str)?;
     }
     if let Some(priority) = payload.priority {
         deadline_to_update.priority = priority;
     }
-
-    // Handle workload pair update: if either is Some, both must be Some (validated by validate_workload_pair)
+    // Handle workload updates carefully: they must be updated together
     if payload.workload_magnitude.is_some() || payload.workload_unit.is_some() {
+        // Validation chk_workload_update already ensures both are Some or both None if either is provided
+        // So, if we reach here, either both are Some or both are None.
+        // If both are Some, use them. If both are None, set both to None.
         deadline_to_update.workload_magnitude = payload.workload_magnitude;
         deadline_to_update.workload_unit = payload.workload_unit;
-    } // If both are None, we don't update the existing values
+    }
+     // If neither workload_magnitude nor workload_unit was in the payload JSON at all,
+     // their Options will be None, and we don't overwrite deadline_to_update.workload_magnitude/unit.
+     // If one was in the payload but the other wasn't, payload.validate() already caught it.
+     // If both were in the payload and were nulls, they become Option::None, and we set deadline_to_update.workload_magnitude/unit to None.
+
+
+    // Optional: If category_id is updated, validate it exists and belongs to the user
+    if let Some(cat_id) = deadline_to_update.category_id {
+       let category_exists: Option<bool> = sqlx::query_scalar!(
+            "SELECT EXISTS(SELECT 1 FROM categories WHERE category_id = $1 AND user_id = $2)",
+            cat_id,
+            user_id
+        )
+        .fetch_one(&state.pool)
+        .await?;
+
+        if category_exists != Some(true) {
+             return Err(AppError::CategoryNotFound);
+        }
+    }
 
 
     // Perform the update query
@@ -198,22 +221,33 @@ pub async fn update_deadline(
         Deadline,
         r#"
         UPDATE deadlines
-        SET category_id = $1, title = $2, description = $3, due_date = $4, priority = $5, workload_magnitude = $6, workload_unit = $7
+        SET
+            category_id = $1,
+            title = $2,
+            description = $3,
+            due_date = $4,
+            priority = $5,
+            workload_magnitude = $6,
+            workload_unit = $7
+            -- updated_at trigger handles timestamp
         WHERE deadline_id = $8 AND user_id = $9 -- Double-check user_id here again for safety
-        RETURNING deadline_id, user_id, category_id as "category_id!: _", title, description as "description!: _", due_date, priority as "priority!: _", workload_magnitude as "workload_magnitude!: _", workload_unit as "workload_unit!: _", created_at as "created_at!", updated_at as "updated_at!"
+        RETURNING
+           deadline_id, user_id, category_id, title, description, due_date, priority as "priority!: _",
+           workload_magnitude as "workload_magnitude!: _", workload_unit as "workload_unit!: _",
+           created_at as "created_at!: _", updated_at as "updated_at!: _"
         "#,
         deadline_to_update.category_id,
         deadline_to_update.title,
         deadline_to_update.description,
         deadline_to_update.due_date,
-        deadline_to_update.priority as _,
+        deadline_to_update.priority as DeadlinePriorityLevel,
         deadline_to_update.workload_magnitude,
-        deadline_to_update.workload_unit as _,
+        deadline_to_update.workload_unit as Option<WorkloadUnitType>,
         deadline_id,
         user_id // Crucial check
     )
     .fetch_one(&state.pool)
-    .await?; // Propagates sqlx errors
+    .await?;
 
     Ok(Json(updated_deadline))
 }
@@ -224,24 +258,20 @@ pub async fn delete_deadline(
     AuthenticatedUser { user_id }: AuthenticatedUser,
     Path(deadline_id): Path<i32>,
 ) -> Result<StatusCode, AppError> {
-    // Perform the delete query. Check for user_id!
     let delete_result = sqlx::query!(
         r#"
         DELETE FROM deadlines
         WHERE deadline_id = $1 AND user_id = $2
         "#,
         deadline_id,
-        user_id // Ensure the deadline belongs to the authenticated user
+        user_id
     )
-    .execute(&state.pool) // Use execute for DELETE
+    .execute(&state.pool)
     .await?;
 
-    // Check how many rows were affected
     if delete_result.rows_affected() == 0 {
-        // No rows deleted means the deadline didn't exist or didn't belong to the user
         Err(AppError::DeadlineNotFound)
     } else {
-        // Return 204 No Content on successful deletion
         Ok(StatusCode::NO_CONTENT)
     }
 }
