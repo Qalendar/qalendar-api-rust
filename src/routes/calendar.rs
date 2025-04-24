@@ -18,7 +18,7 @@ pub fn calendar_routes(app_state: AppState) -> Router { // Explicitly type state
         // Route for seeing calendars shared WITH me: /api/calendar/shares
         .nest("/shares", shared_calendar_routes)
         // Add the shared calendar route here later: /api/calendar/shares/{share_id}
-
+        
         // Make AppState available to all handlers within this router
         .with_state(app_state)
 }
