@@ -16,6 +16,7 @@ pub struct Deadline {
     pub title: String,
     pub description: Option<String>, // Allow NULL in DB
     pub due_date: DateTime<Utc>, // TIMESTAMP WITH TIME ZONE
+    pub virtual_due_date: Option<DateTime<Utc>>, // Optional virtual deadline
     pub priority: DeadlinePriorityLevel, // Use the Rust ENUM
     pub workload_magnitude: Option<i32>, // Corresponds to INTEGER, can be NULL
     pub workload_unit: Option<WorkloadUnitType>, // Corresponds to ENUM, can be NULL
@@ -39,6 +40,7 @@ pub struct CreateDeadlinePayload {
     pub description: Option<String>,
     #[validate(required)]
     pub due_date: Option<String>,
+    pub virtual_due_date: Option<String>, // Optional virtual deadline
     #[validate(required)]
     pub priority: Option<DeadlinePriorityLevel>,
     pub workload_magnitude: Option<i32>,
@@ -56,6 +58,7 @@ pub struct UpdateDeadlinePayload {
     #[validate(length(max = 1000))]
     pub description: Option<String>,
     pub due_date: Option<String>,
+    pub virtual_due_date: Option<String>, // Optional virtual deadline
     pub priority: Option<DeadlinePriorityLevel>,
     pub workload_magnitude: Option<i32>,
     pub workload_unit: Option<WorkloadUnitType>,

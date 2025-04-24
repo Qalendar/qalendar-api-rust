@@ -107,7 +107,7 @@ pub async fn get_user_calendar(
         r#"
         SELECT
            deadline_id, user_id, category_id, title, description as "description!: _",
-           due_date, priority as "priority!: _",
+           due_date, virtual_due_date as "virtual_due_date!: _", priority as "priority!: _",
            workload_magnitude as "workload_magnitude!: _", workload_unit as "workload_unit!: _",
            created_at as "created_at!", updated_at as "updated_at!", deleted_at as "deleted_at!: _"
         FROM deadlines
@@ -222,7 +222,7 @@ pub async fn get_shared_calendar(
         r#"
         SELECT
            deadline_id, user_id, category_id, title, description as "description!: _",
-           due_date, priority as "priority!: _",
+           due_date, virtual_due_date as "virtual_due_date!: _", priority as "priority!: _",
            workload_magnitude as "workload_magnitude!: _", workload_unit as "workload_unit!: _",
            created_at as "created_at!", updated_at as "updated_at!", deleted_at as "deleted_at!: _"
         FROM deadlines
