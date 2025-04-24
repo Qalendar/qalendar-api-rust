@@ -102,7 +102,7 @@ pub async fn create_share(
         SELECT
             user_id, display_name, email, password_hash, date_of_birth as "date_of_birth!: _",
             email_verified as "email_verified!: _",
-            created_at as "created_at!", updated_at as "updated_at!"
+            created_at as "created_at!", updated_at as "updated_at!", deleted_at as "deleted_at!: _"
         FROM users
         WHERE email = $1
         "#,
@@ -154,8 +154,8 @@ pub async fn create_share(
         INSERT INTO calendar_shares (owner_user_id, shared_with_user_id, message, privacy_level, expires_at)
         VALUES ($1, $2, $3, $4, $5)
         RETURNING share_id, owner_user_id, shared_with_user_id, message as "message!: _",
-        privacy_level as "privacy_level!: _",
-        expires_at as "expires_at!: _", created_at as "created_at!", updated_at as "updated_at!"
+        privacy_level as "privacy_level!: _", expires_at as "expires_at!: _",
+        created_at as "created_at!", updated_at as "updated_at!", deleted_at as "deleted_at!: _"
         "#,
         owner_user_id,
         shared_with_user.user_id,
@@ -200,6 +200,7 @@ pub async fn create_share(
             cs.expires_at as "expires_at!: _", -- Explicit cast for Option<DateTime<Utc>>
             cs.created_at as "created_at!", -- Explicit cast for DateTime<Utc>
             cs.updated_at as "updated_at!", -- Explicit cast for DateTime<Utc>
+            cs.deleted_at as "deleted_at!: _", -- Explicit cast for Option<DateTime<Utc>>
             -- Shared With User Details (aliased)
             u.user_id AS user_id_alias, -- Alias matches struct field name
             u.display_name,
@@ -241,6 +242,7 @@ pub async fn list_shares(
             cs.expires_at as "expires_at!: _", -- Explicit cast for Option<DateTime<Utc>>
             cs.created_at as "created_at!", -- Explicit cast for DateTime<Utc>
             cs.updated_at as "updated_at!", -- Explicit cast for DateTime<Utc>
+            cs.deleted_at as "deleted_at!: _", -- Explicit cast for Option<DateTime<Utc>>
             -- Shared With User Details (aliased)
             u.user_id AS user_id_alias, -- Alias matches struct field name
             u.display_name,
@@ -283,6 +285,7 @@ pub async fn get_share_by_id(
             cs.expires_at as "expires_at!: _", -- Explicit cast for Option<DateTime<Utc>>
             cs.created_at as "created_at!", -- Explicit cast for DateTime<Utc>
             cs.updated_at as "updated_at!", -- Explicit cast for DateTime<Utc>
+            cs.deleted_at as "deleted_at!: _", -- Explicit cast for Option<DateTime<Utc>>
             -- Shared With User Details (aliased)
             u.user_id AS user_id_alias, -- Alias matches struct field name
             u.display_name,
@@ -327,8 +330,9 @@ pub async fn update_share(
         CalendarShare,
         r#"
         SELECT
-            share_id, owner_user_id, shared_with_user_id, message, privacy_level as "privacy_level!: _",
-            expires_at as "expires_at!: _", created_at as "created_at!", updated_at as "updated_at!"
+            share_id, owner_user_id, shared_with_user_id, message,
+            privacy_level as "privacy_level!: _", expires_at as "expires_at!: _",
+            created_at as "created_at!", updated_at as "updated_at!", deleted_at as "deleted_at!: _"
         FROM calendar_shares
         WHERE share_id = $1 AND owner_user_id = $2
         FOR UPDATE -- Add FOR UPDATE to explicitly lock the row for this transaction
@@ -374,7 +378,7 @@ pub async fn update_share(
         validate_category_ids(&state.pool, owner_user_id, &category_ids).await?; // Use &state.pool
 
         // Delete existing categories for this share *within the transaction*
-        sqlx::query!("DELETE FROM calendar_share_categories WHERE share_id = $1", share_id)
+        sqlx::query!("UPDATE calendar_share_categories SET deleted_at = NOW() WHERE share_id = $1", share_id)
             .execute(&mut *tx)
             .await?;
 
@@ -409,7 +413,7 @@ pub async fn update_share(
         WHERE share_id = $4 AND owner_user_id = $5 -- Double-check user_id here again for safety
         RETURNING share_id, owner_user_id, shared_with_user_id, message as "message!: _",
         privacy_level as "privacy_level!: _", expires_at as "expires_at!: _",
-        created_at as "created_at!", updated_at as "updated_at!"
+        created_at as "created_at!", updated_at as "updated_at!", deleted_at as "deleted_at!: _"
         "#,
         share_to_update.message,
         share_to_update.privacy_level as SharePrivacyLevel,
@@ -433,7 +437,7 @@ pub async fn update_share(
         SELECT
             cs.share_id, cs.owner_user_id, cs.shared_with_user_id, cs.message as "message!: _",
             cs.privacy_level as "privacy_level!: _", cs.expires_at as "expires_at!: _",
-            cs.created_at as "created_at!", cs.updated_at as "updated_at!",
+            cs.created_at as "created_at!", cs.updated_at as "updated_at!", cs.deleted_at as "deleted_at!: _",
             u.user_id AS user_id_alias, u.display_name, u.email,
             ARRAY_AGG(csc.category_id) FILTER (WHERE csc.category_id IS NOT NULL) AS "shared_category_ids!: Vec<i32>" -- Use FILTER for empty array
         FROM calendar_shares cs
@@ -463,7 +467,8 @@ pub async fn delete_share(
     // ON DELETE CASCADE on calendar_share_categories handles deleting those rows automatically
     let delete_result = sqlx::query!(
         r#"
-        DELETE FROM calendar_shares
+        UPDATE calendar_shares
+        SET deleted_at = NOW() -- Soft delete
         WHERE share_id = $1 AND owner_user_id = $2
         "#,
         share_id,

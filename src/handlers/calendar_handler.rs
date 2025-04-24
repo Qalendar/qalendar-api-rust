@@ -47,6 +47,7 @@ pub async fn list_received_shares(
             cs.expires_at as "expires_at!: _",
             cs.created_at as "created_at!",
             cs.updated_at as "updated_at!",
+            cs.deleted_at as "deleted_at!: _",
             -- Owner User Details (aliased - the sharer)
             u.user_id AS user_id_alias, -- Alias matches struct field name
             u.display_name,
@@ -83,7 +84,7 @@ pub async fn get_user_calendar(
         SELECT
            event_id, user_id, category_id, title, description as "description!: _",
            start_time, end_time, location as "location!: _", rrule as "rrule!: _",
-           created_at as "created_at!", updated_at as "updated_at!"
+           created_at as "created_at!", updated_at as "updated_at!", deleted_at as "deleted_at!: _"
         FROM events
         WHERE user_id = $1 -- Owned events
            OR event_id IN (
@@ -108,7 +109,7 @@ pub async fn get_user_calendar(
            deadline_id, user_id, category_id, title, description as "description!: _",
            due_date, priority as "priority!: _",
            workload_magnitude as "workload_magnitude!: _", workload_unit as "workload_unit!: _",
-           created_at as "created_at!", updated_at as "updated_at!"
+           created_at as "created_at!", updated_at as "updated_at!", deleted_at as "deleted_at!: _"
         FROM deadlines
         WHERE user_id = $1 -- Owned deadlines
         ORDER BY due_date -- Order by due date
@@ -145,7 +146,7 @@ pub async fn get_shared_calendar(
         SELECT
             share_id, owner_user_id, shared_with_user_id, message as "message!: _",
             privacy_level as "privacy_level!: _", expires_at as "expires_at!: _",
-            created_at as "created_at!", updated_at as "updated_at!"
+            created_at as "created_at!", updated_at as "updated_at!", deleted_at as "deleted_at!: _"
         FROM calendar_shares
         WHERE share_id = $1 AND shared_with_user_id = $2
         "#,
@@ -186,7 +187,7 @@ pub async fn get_shared_calendar(
         SELECT
            event_id, user_id, category_id, title, description as "description!: _",
            start_time, end_time, location as "location!: _", rrule as "rrule!: _",
-           created_at as "created_at!: _", updated_at as "updated_at!: _"
+           created_at as "created_at!: _", updated_at as "updated_at!: _", deleted_at as "deleted_at!: _"
         FROM events e
         WHERE
            ( -- Case 1: Events owned by the sharer included in the share
@@ -223,7 +224,7 @@ pub async fn get_shared_calendar(
            deadline_id, user_id, category_id, title, description as "description!: _",
            due_date, priority as "priority!: _",
            workload_magnitude as "workload_magnitude!: _", workload_unit as "workload_unit!: _",
-           created_at as "created_at!", updated_at as "updated_at!"
+           created_at as "created_at!", updated_at as "updated_at!", deleted_at as "deleted_at!: _"
         FROM deadlines
         WHERE user_id = $1 -- Only deadlines owned by the sharer
           AND category_id = ANY($2) -- Filter by shared categories

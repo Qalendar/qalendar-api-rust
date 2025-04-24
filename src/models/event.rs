@@ -19,6 +19,7 @@ pub struct Event {
     pub rrule: Option<String>, // Store RRULE string, nullable
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    pub deleted_at: Option<DateTime<Utc>>,
 }
 
 // --- API Payloads ---

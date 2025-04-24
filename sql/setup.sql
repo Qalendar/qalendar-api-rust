@@ -38,7 +38,8 @@ CREATE TABLE users (
     reset_code TEXT,
     reset_code_expires_at TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    deleted_at TIMESTAMP WITH TIME ZONE NULL
 );
 DROP TRIGGER IF EXISTS set_timestamp_users ON users;
 CREATE TRIGGER set_timestamp_users BEFORE UPDATE ON users FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp();
@@ -52,6 +53,7 @@ CREATE TABLE categories (
     is_visible BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    deleted_at TIMESTAMP WITH TIME ZONE NULL,
     FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
     UNIQUE (user_id, name)
 );
@@ -77,6 +79,7 @@ CREATE TABLE deadlines (
     workload_unit workload_unit_type,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    deleted_at TIMESTAMP WITH TIME ZONE NULL,
     FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
     FOREIGN KEY (category_id) REFERENCES categories(category_id) ON DELETE SET NULL,
     CONSTRAINT chk_workload CHECK ((workload_magnitude IS NULL AND workload_unit IS NULL) OR (workload_magnitude IS NOT NULL AND workload_unit IS NOT NULL))
@@ -97,6 +100,7 @@ CREATE TABLE events (
     rrule TEXT,                                   -- Stores the iCalendar RRULE string
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    deleted_at TIMESTAMP WITH TIME ZONE NULL,
     FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
     FOREIGN KEY (category_id) REFERENCES categories(category_id) ON DELETE SET NULL
 );
@@ -140,6 +144,7 @@ CREATE TABLE event_invitations (
     status event_invitation_status DEFAULT 'pending',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    deleted_at TIMESTAMP WITH TIME ZONE NULL,
     FOREIGN KEY (event_id) REFERENCES events(event_id) ON DELETE CASCADE,
     FOREIGN KEY (owner_user_id) REFERENCES users(user_id) ON DELETE CASCADE,
     FOREIGN KEY (invited_user_id) REFERENCES users(user_id) ON DELETE CASCADE,
@@ -158,6 +163,7 @@ CREATE TABLE calendar_shares (
     expires_at TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    deleted_at TIMESTAMP WITH TIME ZONE NULL,
     FOREIGN KEY (owner_user_id) REFERENCES users(user_id) ON DELETE CASCADE,
     FOREIGN KEY (shared_with_user_id) REFERENCES users(user_id) ON DELETE CASCADE,
     UNIQUE (owner_user_id, shared_with_user_id)
@@ -169,6 +175,7 @@ CREATE TRIGGER set_timestamp_calendar_shares BEFORE UPDATE ON calendar_shares FO
 CREATE TABLE calendar_share_categories (
     share_id INTEGER NOT NULL,
     category_id INTEGER NOT NULL,
+    deleted_at TIMESTAMP WITH TIME ZONE NULL,
     PRIMARY KEY (share_id, category_id),
     FOREIGN KEY (share_id) REFERENCES calendar_shares(share_id) ON DELETE CASCADE,
     FOREIGN KEY (category_id) REFERENCES categories(category_id) ON DELETE CASCADE

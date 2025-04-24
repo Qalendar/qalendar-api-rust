@@ -20,6 +20,7 @@ pub struct RegisterUserPayload {
     // Optional: Add custom date validation if needed
     // Format will be checked during parsing later
     pub dob: Option<String>,
+    pub deleted_at: Option<DateTime<Utc>>,
 }
 
 #[derive(Deserialize, Validate, Debug)]
@@ -76,4 +77,5 @@ pub struct User {
     // pub reset_code_expires_at: Option<DateTime<Utc>>,
     pub created_at: DateTime<Utc>, // Matches TIMESTAMP WITH TIME ZONE
     pub updated_at: DateTime<Utc>,
+    pub deleted_at: Option<DateTime<Utc>>,
 }
