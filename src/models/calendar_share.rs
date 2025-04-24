@@ -108,3 +108,45 @@ pub struct ShareDetailsResponse {
 // Similar to ShareDetailsResponse, but maybe slightly less detail or just use the same struct
 // Let's re-use ShareDetailsResponse for simplicity, assuming the query returns the same structure.
 pub type ListSharesResponseItem = ShareDetailsResponse;
+
+// Keep this as a conversion target for API responses, serialization, or documentation if needed
+#[derive(Debug, FromRow, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ShareOwnerDetail {
+    #[serde(rename = "userId")]
+    pub user_id_alias: i32, // Alias from SQL query
+    #[serde(rename = "displayName")]
+    pub display_name: String,
+    pub email: String,
+}
+
+
+// Response struct for GET /api/shared-calendars (list calendars shared WITH me)
+#[derive(Debug, FromRow, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ReceivedShareResponseItem {
+    // Fields from CalendarShare
+    pub share_id: i32,
+    pub owner_user_id: i32, // The ID of the user who shared it
+    pub shared_with_user_id: i32, // Should match the authenticated user's ID
+    pub message: Option<String>,
+    pub privacy_level: SharePrivacyLevel,
+    pub expires_at: Option<DateTime<Utc>>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>, // Update time for the share *settings*
+
+    // // Joined ShareOwner details (aliased in query)
+    // #[serde(flatten)] // Embed these fields directly
+    // pub owner_user: ShareOwnerDetail,
+
+    // Direct user fields from query
+    #[serde(rename = "userId")] 
+    pub user_id_alias: i32,
+    pub display_name: String,
+    pub email: String,
+
+    // List of category IDs included in the share (aggregated in query)
+    // Use Option<Vec<i32>> to gracefully handle potential NULL from ARRAY_AGG
+    // #[sqlx(json)] // Tell sqlx how to handle the array_agg result (as JSON array string)
+    pub shared_category_ids: Option<Vec<i32>>,
+}
