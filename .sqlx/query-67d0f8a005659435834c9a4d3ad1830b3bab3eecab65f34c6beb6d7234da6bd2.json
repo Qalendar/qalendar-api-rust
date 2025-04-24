@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        UPDATE users\n        SET email_verified = TRUE, verification_code = NULL, verification_code_expires_at = NULL\n        WHERE user_id = $1\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "67d0f8a005659435834c9a4d3ad1830b3bab3eecab65f34c6beb6d7234da6bd2"
+}

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n        SELECT\n           deadline_id, user_id, category_id, title, description, due_date, priority as \"priority!: _\",\n           workload_magnitude as \"workload_magnitude!: _\", workload_unit as \"workload_unit!: _\",\n           created_at as \"created_at!\", updated_at as \"updated_at!\", deleted_at as \"deleted_at!: _\"\n        FROM deadlines\n        WHERE deadline_id = $1 AND user_id = $2 -- IMPORTANT: Check user_id!\n        ",
+  "query": "\n        INSERT INTO deadlines (user_id, category_id, title, description, due_date, virtual_due_date, priority,\n        workload_magnitude, workload_unit)\n        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)\n        RETURNING\n           deadline_id, user_id, category_id, title, description, due_date, virtual_due_date, priority as \"priority!: _\",\n           workload_magnitude as \"workload_magnitude!: _\", workload_unit as \"workload_unit!: _\",\n           created_at as \"created_at!\", updated_at as \"updated_at!\", deleted_at as \"deleted_at!: _\"\n        ",
   "describe": {
     "columns": [
       {
@@ -35,6 +35,11 @@
       },
       {
         "ordinal": 6,
+        "name": "virtual_due_date",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 7,
         "name": "priority!: _",
         "type_info": {
           "Custom": {
@@ -50,12 +55,12 @@
         }
       },
       {
-        "ordinal": 7,
+        "ordinal": 8,
         "name": "workload_magnitude!: _",
         "type_info": "Int4"
       },
       {
-        "ordinal": 8,
+        "ordinal": 9,
         "name": "workload_unit!: _",
         "type_info": {
           "Custom": {
@@ -71,17 +76,17 @@
         }
       },
       {
-        "ordinal": 9,
+        "ordinal": 10,
         "name": "created_at!",
         "type_info": "Timestamptz"
       },
       {
-        "ordinal": 10,
+        "ordinal": 11,
         "name": "updated_at!",
         "type_info": "Timestamptz"
       },
       {
-        "ordinal": 11,
+        "ordinal": 12,
         "name": "deleted_at!: _",
         "type_info": "Timestamptz"
       }
@@ -89,7 +94,36 @@
     "parameters": {
       "Left": [
         "Int4",
-        "Int4"
+        "Int4",
+        "Varchar",
+        "Text",
+        "Timestamptz",
+        "Timestamptz",
+        {
+          "Custom": {
+            "name": "deadline_priority_level",
+            "kind": {
+              "Enum": [
+                "normal",
+                "important",
+                "urgent"
+              ]
+            }
+          }
+        },
+        "Int4",
+        {
+          "Custom": {
+            "name": "workload_unit_type",
+            "kind": {
+              "Enum": [
+                "minutes",
+                "hours",
+                "days"
+              ]
+            }
+          }
+        }
       ]
     },
     "nullable": [
@@ -104,8 +138,9 @@
       true,
       true,
       true,
+      true,
       true
     ]
   },
-  "hash": "69d26c55a9f04727460c5721b454fb29716e331d2396ca39ece52d516029aa3c"
+  "hash": "05766cbc444138c2d63d2c651a7f5fac5952f683a0fc46e50c235076b707852c"
 }

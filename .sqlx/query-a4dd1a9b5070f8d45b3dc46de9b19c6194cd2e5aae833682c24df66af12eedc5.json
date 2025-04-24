@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n        SELECT user_id, display_name, email, password_hash, date_of_birth, \n               email_verified as \"email_verified!\", \n               created_at as \"created_at!\", \n               updated_at as \"updated_at!\",\n               deleted_at as \"deleted_at!: _\"\n        FROM users WHERE email = $1\n        ",
+  "query": "\n        SELECT user_id, display_name, email, password_hash, date_of_birth,\n               email_verified as \"email_verified!\",\n               verification_code, verification_code_expires_at,\n               reset_code, reset_code_expires_at,\n               created_at as \"created_at!\",\n               updated_at as \"updated_at!\",\n               deleted_at as \"deleted_at!: _\"\n        FROM users WHERE email = $1\n        ",
   "describe": {
     "columns": [
       {
@@ -35,16 +35,36 @@
       },
       {
         "ordinal": 6,
-        "name": "created_at!",
-        "type_info": "Timestamptz"
+        "name": "verification_code",
+        "type_info": "Text"
       },
       {
         "ordinal": 7,
-        "name": "updated_at!",
+        "name": "verification_code_expires_at",
         "type_info": "Timestamptz"
       },
       {
         "ordinal": 8,
+        "name": "reset_code",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 9,
+        "name": "reset_code_expires_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 10,
+        "name": "created_at!",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 11,
+        "name": "updated_at!",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 12,
         "name": "deleted_at!: _",
         "type_info": "Timestamptz"
       }
@@ -63,8 +83,12 @@
       true,
       true,
       true,
+      true,
+      true,
+      true,
+      true,
       true
     ]
   },
-  "hash": "adfdccdd39037b5d5bc964d8e67b92ea337e8a34457cadce8ed4c606c4a01f64"
+  "hash": "a4dd1a9b5070f8d45b3dc46de9b19c6194cd2e5aae833682c24df66af12eedc5"
 }
