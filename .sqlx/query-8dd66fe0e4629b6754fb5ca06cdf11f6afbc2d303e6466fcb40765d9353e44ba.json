@@ -1,0 +1,95 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT\n           event_id, user_id, category_id, title, description as \"description!: _\",\n           start_time, end_time, location as \"location!: _\", rrule as \"rrule!: _\",\n           created_at as \"created_at!\", updated_at as \"updated_at!\"\n        FROM events\n        WHERE user_id = $1 -- Owned events\n           OR event_id IN (\n               SELECT event_id\n               FROM event_invitations\n               WHERE invited_user_id = $1 AND status = $2\n           ) -- Accepted invited events\n        ORDER BY start_time\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "event_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "user_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 2,
+        "name": "category_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 3,
+        "name": "title",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 4,
+        "name": "description!: _",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "start_time",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 6,
+        "name": "end_time",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 7,
+        "name": "location!: _",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 8,
+        "name": "rrule!: _",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 9,
+        "name": "created_at!",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 10,
+        "name": "updated_at!",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4",
+        {
+          "Custom": {
+            "name": "event_invitation_status",
+            "kind": {
+              "Enum": [
+                "pending",
+                "accepted",
+                "rejected",
+                "maybe"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "8dd66fe0e4629b6754fb5ca06cdf11f6afbc2d303e6466fcb40765d9353e44ba"
+}

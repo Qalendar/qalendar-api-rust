@@ -1,0 +1,104 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT\n           deadline_id, user_id, category_id, title, description as \"description!: _\",\n           due_date, priority as \"priority!: _\",\n           workload_magnitude as \"workload_magnitude!: _\", workload_unit as \"workload_unit!: _\",\n           created_at as \"created_at!\", updated_at as \"updated_at!\"\n        FROM deadlines\n        WHERE user_id = $1 -- Owned deadlines\n        ORDER BY due_date -- Order by due date\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "deadline_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "user_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 2,
+        "name": "category_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 3,
+        "name": "title",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 4,
+        "name": "description!: _",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "due_date",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 6,
+        "name": "priority!: _",
+        "type_info": {
+          "Custom": {
+            "name": "deadline_priority_level",
+            "kind": {
+              "Enum": [
+                "normal",
+                "important",
+                "urgent"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "workload_magnitude!: _",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 8,
+        "name": "workload_unit!: _",
+        "type_info": {
+          "Custom": {
+            "name": "workload_unit_type",
+            "kind": {
+              "Enum": [
+                "minutes",
+                "hours",
+                "days"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "created_at!",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 10,
+        "name": "updated_at!",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "64a647eb351ef396f20f0989f86d79c376db2f3217856a9c58d3f1c33f2e0353"
+}

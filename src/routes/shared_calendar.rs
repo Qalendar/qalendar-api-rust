@@ -6,7 +6,7 @@ use crate::AppState; // Import AppState
 use crate::handlers::calendar_handler; // Import handlers from calendar_handler
 
 // Function to create the /api/shared-calendars sub-router (Recipient actions)
-pub fn shared_calendar_routes(app_state: AppState) -> Router {
+pub fn shared_calendar_routes(app_state: AppState) -> Router<AppState> {
      Router::new()
         // Base route: /api/shared-calendars (List calendars shared WITH me)
         .route("/", get(calendar_handler::list_received_shares))
