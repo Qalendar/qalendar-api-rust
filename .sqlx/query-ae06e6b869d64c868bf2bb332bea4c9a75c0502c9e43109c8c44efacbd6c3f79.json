@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n        SELECT\n           deadline_id, user_id, category_id, title, description, due_date, priority as \"priority!: _\",\n           workload_magnitude as \"workload_magnitude!: _\", workload_unit as \"workload_unit!: _\",\n           created_at as \"created_at!: _\", updated_at as \"updated_at!: _\"\n        FROM deadlines\n        WHERE deadline_id = $1 AND user_id = $2 -- IMPORTANT: Check user_id!\n        ",
+  "query": "\n        SELECT\n           deadline_id, user_id, category_id, title, description, due_date, priority as \"priority!: _\",\n           workload_magnitude as \"workload_magnitude!: _\", workload_unit as \"workload_unit!: _\",\n           created_at as \"created_at!\", updated_at as \"updated_at!\"\n        FROM deadlines\n        WHERE deadline_id = $1 AND user_id = $2 -- IMPORTANT: Check user_id!\n        ",
   "describe": {
     "columns": [
       {
@@ -72,12 +72,12 @@
       },
       {
         "ordinal": 9,
-        "name": "created_at!: _",
+        "name": "created_at!",
         "type_info": "Timestamptz"
       },
       {
         "ordinal": 10,
-        "name": "updated_at!: _",
+        "name": "updated_at!",
         "type_info": "Timestamptz"
       }
     ],
@@ -101,5 +101,5 @@
       true
     ]
   },
-  "hash": "842cc6471d5810b9aa8865e1b41ab673097e49aef0aa7196247d126d73b6fc8b"
+  "hash": "ae06e6b869d64c868bf2bb332bea4c9a75c0502c9e43109c8c44efacbd6c3f79"
 }

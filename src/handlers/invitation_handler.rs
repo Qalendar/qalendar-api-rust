@@ -56,7 +56,7 @@ pub async fn create_invitation(
         r#"
         SELECT
             user_id, display_name, email, password_hash, date_of_birth as "date_of_birth!: _",
-            email_verified as "email_verified!", created_at as "created_at!: _", updated_at as "updated_at!: _"
+            email_verified as "email_verified!", created_at as "created_at!", updated_at as "updated_at!"
         FROM users
         WHERE email = $1
         "#,

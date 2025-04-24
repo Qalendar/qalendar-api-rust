@@ -1,0 +1,88 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        UPDATE calendar_shares\n        SET\n            message = $1,\n            privacy_level = $2,\n            expires_at = $3\n            -- updated_at trigger handles timestamp\n        WHERE share_id = $4 AND owner_user_id = $5 -- Double-check user_id here again for safety\n        RETURNING share_id, owner_user_id, shared_with_user_id, message as \"message!: _\",\n        privacy_level as \"privacy_level!: _\", expires_at as \"expires_at!: _\",\n        created_at as \"created_at!\", updated_at as \"updated_at!\"\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "share_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "owner_user_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 2,
+        "name": "shared_with_user_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 3,
+        "name": "message!: _",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "privacy_level!: _",
+        "type_info": {
+          "Custom": {
+            "name": "share_privacy_level",
+            "kind": {
+              "Enum": [
+                "full_details",
+                "busy_only"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "expires_at!: _",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 6,
+        "name": "created_at!",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 7,
+        "name": "updated_at!",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        {
+          "Custom": {
+            "name": "share_privacy_level",
+            "kind": {
+              "Enum": [
+                "full_details",
+                "busy_only"
+              ]
+            }
+          }
+        },
+        "Timestamptz",
+        "Int4",
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      false,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "b9aa4d1808a4e0796c1198a32253073c930a11a651e5294b8cfc39d6da54f98e"
+}
