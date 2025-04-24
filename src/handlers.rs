@@ -4,4 +4,5 @@ pub mod category_handler;
 pub mod deadline_handler;
 pub mod event_handler;
 pub mod invitation_handler;
-pub mod calendar_share_handler;
+pub mod share_handler;
+pub mod calendar_handler;
