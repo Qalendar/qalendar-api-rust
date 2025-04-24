@@ -50,38 +50,23 @@ This method requires the Rust toolchain.
     cargo install sqlx-cli
     ```
 
-4. **Set up Database & Run Migrations:**
-    * Set the `DATABASE_URL` environment variable temporarily (replace with your actual URL):
-
-        * Linux/macOS (Bash/Zsh)
-
-        ```zsh
-        export DATABASE_URL=postgres://username:password@localhost:5432/qalendar_db
-        ```
-
-        * Windows (Command Prompt)
-
-        ```cmd
-        set DATABASE_URL=postgres://username:password@localhost:5432/qalendar_db
-        ```
-
-        * Windows (PowerShell)
-
-        ```pwsh
-        $env:DATABASE_URL="postgres://username:password@localhost:5432/qalendar_db"
-        ```
-
-    * Create the database if it doesn't exist (using `sqlx-cli`):
+4. **Set up Database & Apply Schema:**
+    * Ensure your PostgreSQL server is running.
+    * Create a database for Qalendar (e.g., `qalendar_db`) and a user with privileges for this database. You can do this using a client tool or `sqlx-cli` if you have it installed:
 
         ```zsh
+        # Using sqlx-cli (requires DATABASE_URL env var set temporarily)
+        export DATABASE_URL=postgres://username:password@localhost:5432/qalendar_db # Set this first
         sqlx database create
         ```
 
-    * Run the database schema migrations located in the `migrations` folder (if present, or apply the schema manually using the SQL file):
+    * Apply the database schema by executing the SQL commands in the [`sql/setup.sql`](sql/setup.sql) file. You can do this using a PostgreSQL client tool (like `psql`):
 
         ```zsh
-        sqlx migrate run
+        psql -d qalendar_db -U username -f sql/setup.sql
         ```
+
+        Replace `qalendar_db` and `username` with your database and user details.
 
 5. **Create Configuration File:** Copy the `.env.example` file to `.env` in the `qalendar-api` directory and fill in your actual database credentials, JWT secret, SMTP details, and other configuration (see [Configuration](#configuration) below).
 
@@ -112,7 +97,7 @@ This method requires the Rust toolchain.
 You can download pre-compiled binaries for your operating system directly from the GitHub repository's Releases page or the build artifacts from GitHub Actions workflows (if configured).
 
 1. **Download:** Go to the [GitHub Actions](https://github.com/Qalendar/qalendar-api-rust/actions) page and download the executable file (only available for Windows 64-bit for now). You might need to unzip the downloaded file.
-2. **Database Setup:** Ensure your PostgreSQL database is running and the schema has been applied (you can use `psql` or another DB tool to run the SQL schema definition found in the repository).
+2. **Database Setup:** Ensure your PostgreSQL database is running. Create a database and a user with privileges. Apply the database schema by executing the SQL commands found in the [`sql/setup.sql`](sql/setup.sql) file using a PostgreSQL client tool (like `psql`, PGAdmin, DBeaver).
 3. **Create Configuration File:** Create a file named `.env` in the *same directory* where you placed the downloaded `qalendar-api` executable. Copy the contents from `example.env` (available in the source repository) and fill in your configuration details (see [Configuration (.env File)](#configuration-env-file) below).
 4. **Run:** Open a terminal or command prompt in the directory containing the executable and the `.env` file, and run the server:
 
@@ -133,7 +118,7 @@ You can download pre-compiled binaries for your operating system directly from t
 
 The API server requires configuration via environment variables. The easiest way is to create a `.env` file in the `qalendar-api` directory (when building from source) or alongside the executable (when using pre-built artifacts).
 
-Please refer to the `example.env` file in the repository for the most up-to-date list of variables. Key variables include:
+Please refer to the `.env.example` file in the repository for the most up-to-date list of variables. Key variables include:
 
 * **`DATABASE_URL`**: Your PostgreSQL connection string (e.g., `postgres://user:password@host:port/database`).
 * **`JWT_SECRET`**: A strong, unique secret string for signing authentication tokens. **Keep this secure!**
