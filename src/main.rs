@@ -19,11 +19,13 @@ mod handlers; // Declares auth_handler module inside
 mod auth; // Declares jwt module inside
 mod utils; // Declares security module inside
 mod middleware; // Declares auth module inside
+mod email; // Declares email module inside
 
 use config::Config; // Use the Config struct
 use errors::AppError; // Use our custom error type
 use routes::create_api_router; // Use the function from routes module
 use state::AppState; // Use the AppState struct
+use email::EmailService; // Use the EmailService struct
 
 
 #[tokio::main]
@@ -45,10 +47,15 @@ async fn main() -> Result<(), AppError> { // Return our AppError
     let pool = db::create_pool(&config).await?; // Use db module function
     tracing::info!("Database pool created successfully.");
 
+    // Create the Email Service
+    let email_service = EmailService::new(config.clone())?; // Pass clone of Arc<Config>
+    tracing::info!("Email service initialized.");
+
     // Create the application state - this is the single source of truth for state
     let app_state = AppState {
         pool: pool.clone(), // Clone the pool for the state
         config: config.clone(), // Clone the Arc<Config>
+        email_service,
     };
 
     // Configure CORS

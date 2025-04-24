@@ -28,6 +28,14 @@ pub enum AppError {
     CannotModifySharedItem, // Trying to edit/delete an item you don't own via a share
     CannotInviteToNonOwnedEvent, // Trying to invite to an event you don't own
     CannotRespondToNonInvitedEvent, // Trying to respond to an invitation you didn't receive
+    UserAlreadyVerified,
+    UserNotVerified, // User needs verification before action (e.g. reset)
+    VerificationCodeInvalid,
+    VerificationCodeExpired,
+    ResetCodeInvalid, // Includes cases where code is missing, incorrect, or user email doesn't match code
+    ResetCodeExpired,
+    EmailSendingError(String), // Error specifically from the email service
+    // Consider UserNotFound for when an email address isn't found for password reset/resend
 }
 
 // How AppError should be converted into an HTTP response
@@ -84,6 +92,18 @@ impl IntoResponse for AppError {
             AppError::CannotModifySharedItem => (StatusCode::FORBIDDEN, "Cannot modify item shared with you".to_string()),
             AppError::CannotInviteToNonOwnedEvent => (StatusCode::FORBIDDEN, "Cannot invite to an event you do not own".to_string()),
             AppError::CannotRespondToNonInvitedEvent => (StatusCode::FORBIDDEN, "Cannot respond to an invitation you did not receive".to_string()),
+            AppError::UserAlreadyVerified => (StatusCode::CONFLICT, "User is already verified".to_string()),
+            AppError::UserNotVerified => (StatusCode::FORBIDDEN, "User email not verified".to_string()),
+            AppError::VerificationCodeInvalid => (StatusCode::BAD_REQUEST, "Invalid verification code".to_string()),
+            AppError::VerificationCodeExpired => (StatusCode::BAD_REQUEST, "Verification code expired".to_string()),
+            AppError::ResetCodeInvalid => (StatusCode::BAD_REQUEST, "Invalid reset code or email".to_string()), // Keep vague for security
+            AppError::ResetCodeExpired => (StatusCode::BAD_REQUEST, "Reset code expired".to_string()),
+            AppError::EmailSendingError(msg) => {
+                 tracing::error!("Email sending failed: {}", msg);
+                 (StatusCode::INTERNAL_SERVER_ERROR, "Failed to send email".to_string()) // Don't expose internal error message
+            }
+            // Use existing errors for cases like UserNotFound, InvalidCredentials, ValidationFailed
+            // e.g., trying to resend verification email to non-existent email -> UserNotFound (404)
         };
 
         let body = Json(json!({ "error": error_message }));
