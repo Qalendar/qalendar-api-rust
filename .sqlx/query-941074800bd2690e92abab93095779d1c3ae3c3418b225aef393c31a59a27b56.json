@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n        INSERT INTO users (display_name, email, password_hash, date_of_birth)\n        VALUES ($1, $2, $3, $4)\n        RETURNING user_id, display_name, email, email_verified, created_at, date_of_birth\n        ",
+  "query": "\n        INSERT INTO users (display_name, email, password_hash, date_of_birth, email_verified, verification_code, verification_code_expires_at)\n        VALUES ($1, $2, $3, $4, FALSE, $5, $6) -- email_verified is FALSE by default, but explicit is clear\n        RETURNING user_id, display_name, email, email_verified, created_at, date_of_birth\n        ",
   "describe": {
     "columns": [
       {
@@ -39,7 +39,9 @@
         "Varchar",
         "Varchar",
         "Text",
-        "Date"
+        "Date",
+        "Text",
+        "Timestamptz"
       ]
     },
     "nullable": [
@@ -51,5 +53,5 @@
       true
     ]
   },
-  "hash": "84a16a2bab813dbbfbfd3d0bb53893748c2495b3fd501c97fffec4b39bc389f1"
+  "hash": "941074800bd2690e92abab93095779d1c3ae3c3418b225aef393c31a59a27b56"
 }

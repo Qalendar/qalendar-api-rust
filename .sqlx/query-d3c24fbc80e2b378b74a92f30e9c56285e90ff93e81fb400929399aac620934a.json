@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n        UPDATE deadlines\n        SET\n            category_id = $1,\n            title = $2,\n            description = $3,\n            due_date = $4,\n            priority = $5,\n            workload_magnitude = $6,\n            workload_unit = $7\n            -- updated_at trigger handles timestamp\n        WHERE deadline_id = $8 AND user_id = $9 -- Double-check user_id here again for safety\n        RETURNING\n           deadline_id, user_id, category_id, title, description, due_date, priority as \"priority!: _\",\n           workload_magnitude as \"workload_magnitude!: _\", workload_unit as \"workload_unit!: _\",\n           created_at as \"created_at!\", updated_at as \"updated_at!\", deleted_at as \"deleted_at!: _\"\n        ",
+  "query": "\n        SELECT\n           deadline_id, user_id, category_id, title, description as \"description!: _\",\n           due_date, virtual_due_date as \"virtual_due_date!: _\", priority as \"priority!: _\",\n           workload_magnitude as \"workload_magnitude!: _\", workload_unit as \"workload_unit!: _\",\n           created_at as \"created_at!\", updated_at as \"updated_at!\", deleted_at as \"deleted_at!: _\"\n        FROM deadlines\n        WHERE user_id = $1 -- Owned deadlines\n        ORDER BY due_date -- Order by due date\n        ",
   "describe": {
     "columns": [
       {
@@ -25,7 +25,7 @@
       },
       {
         "ordinal": 4,
-        "name": "description",
+        "name": "description!: _",
         "type_info": "Text"
       },
       {
@@ -35,6 +35,11 @@
       },
       {
         "ordinal": 6,
+        "name": "virtual_due_date!: _",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 7,
         "name": "priority!: _",
         "type_info": {
           "Custom": {
@@ -50,12 +55,12 @@
         }
       },
       {
-        "ordinal": 7,
+        "ordinal": 8,
         "name": "workload_magnitude!: _",
         "type_info": "Int4"
       },
       {
-        "ordinal": 8,
+        "ordinal": 9,
         "name": "workload_unit!: _",
         "type_info": {
           "Custom": {
@@ -71,53 +76,23 @@
         }
       },
       {
-        "ordinal": 9,
+        "ordinal": 10,
         "name": "created_at!",
         "type_info": "Timestamptz"
       },
       {
-        "ordinal": 10,
+        "ordinal": 11,
         "name": "updated_at!",
         "type_info": "Timestamptz"
       },
       {
-        "ordinal": 11,
+        "ordinal": 12,
         "name": "deleted_at!: _",
         "type_info": "Timestamptz"
       }
     ],
     "parameters": {
       "Left": [
-        "Int4",
-        "Varchar",
-        "Text",
-        "Timestamptz",
-        {
-          "Custom": {
-            "name": "deadline_priority_level",
-            "kind": {
-              "Enum": [
-                "normal",
-                "important",
-                "urgent"
-              ]
-            }
-          }
-        },
-        "Int4",
-        {
-          "Custom": {
-            "name": "workload_unit_type",
-            "kind": {
-              "Enum": [
-                "minutes",
-                "hours",
-                "days"
-              ]
-            }
-          }
-        },
-        "Int4",
         "Int4"
       ]
     },
@@ -133,8 +108,9 @@
       true,
       true,
       true,
+      true,
       true
     ]
   },
-  "hash": "a3d4d2c1eb46e25eb5d702c869322eb68ae2e3f6f0c976e35fa8778c12b90f13"
+  "hash": "d3c24fbc80e2b378b74a92f30e9c56285e90ff93e81fb400929399aac620934a"
 }

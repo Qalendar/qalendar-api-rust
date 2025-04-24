@@ -7,6 +7,21 @@ pub struct Config {
     pub jwt_secret: String,
     pub server_address: String,
     pub jwt_expiration_seconds: i64,
+
+    // Email Service Configuration
+    pub smtp_server: String,
+    pub smtp_port: u16, // Use u16 for port
+    pub smtp_user: String, // Often the same as sender email
+    pub smtp_password: String,
+    pub sender_email: String,
+    pub sender_name: String, // Friendly name for sender
+
+    // Code Expiration Durations (in minutes)
+    pub verification_code_expires_minutes: i64, // Use i64 for chrono::Duration
+    pub reset_code_expires_minutes: i64,
+
+    // Frontend Configuration
+    pub frontend_url: String,
 }
 
 impl Config {
@@ -27,11 +42,51 @@ impl Config {
         let jwt_expiration_seconds = jwt_expiration_str.parse::<i64>()
             .map_err(|e| AppError::ConfigurationError(format!("Invalid JWT_EXPIRATION_SECONDS format: {}", e)))?;
 
+        // Load Email Config
+        let smtp_server = env::var("SMTP_SERVER")
+            .map_err(|e| AppError::ConfigurationError(format!("Missing SMTP_SERVER: {}", e)))?;
+        let smtp_port_str = env::var("SMTP_PORT")
+            .map_err(|e| AppError::ConfigurationError(format!("Missing SMTP_PORT: {}", e)))?;
+        let smtp_port = smtp_port_str.parse::<u16>()
+            .map_err(|e| AppError::ConfigurationError(format!("Invalid SMTP_PORT format: {}", e)))?;
+        let smtp_user = env::var("SMTP_USER")
+            .map_err(|e| AppError::ConfigurationError(format!("Missing SMTP_USER: {}", e)))?;
+        let smtp_password = env::var("SMTP_PASSWORD")
+            .map_err(|e| AppError::ConfigurationError(format!("Missing SMTP_PASSWORD: {}", e)))?;
+        let sender_email = env::var("SENDER_EMAIL")
+            .map_err(|e| AppError::ConfigurationError(format!("Missing SENDER_EMAIL: {}", e)))?;
+        let sender_name = env::var("SENDER_NAME")
+            .unwrap_or_else(|_| "Qalendar App".to_string()); // Default sender name
+
+        // Load Code Expiration Durations
+        let verification_minutes_str = env::var("VERIFICATION_CODE_EXPIRES_MINUTES")
+            .unwrap_or_else(|_| "30".to_string()); // Default 30 minutes
+        let verification_code_expires_minutes = verification_minutes_str.parse::<i64>()
+            .map_err(|e| AppError::ConfigurationError(format!("Invalid VERIFICATION_CODE_EXPIRES_MINUTES format: {}", e)))?;
+
+        let reset_minutes_str = env::var("RESET_CODE_EXPIRES_MINUTES")
+            .unwrap_or_else(|_| "15".to_string()); // Default 15 minutes
+        let reset_code_expires_minutes = reset_minutes_str.parse::<i64>()
+            .map_err(|e| AppError::ConfigurationError(format!("Invalid RESET_CODE_EXPIRES_MINUTES format: {}", e)))?;
+
+         // --- Load Frontend URL ---
+        let frontend_url = env::var("FRONTEND_URL")
+            .map_err(|e| AppError::ConfigurationError(format!("Missing FRONTEND_URL: {}", e)))?;
+
         Ok(Self {
             database_url,
             jwt_secret,
             server_address,
             jwt_expiration_seconds,
+            smtp_server,
+            smtp_port,
+            smtp_user,
+            smtp_password,
+            sender_email,
+            sender_name,
+            verification_code_expires_minutes,
+            reset_code_expires_minutes,
+            frontend_url,
         })
     }
 }

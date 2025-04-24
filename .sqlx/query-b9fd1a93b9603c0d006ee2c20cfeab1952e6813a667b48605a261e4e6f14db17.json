@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        UPDATE users\n        SET reset_code = $1, reset_code_expires_at = $2, updated_at = NOW() -- Explicitly update updated_at\n        WHERE user_id = $3\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Timestamptz",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "b9fd1a93b9603c0d006ee2c20cfeab1952e6813a667b48605a261e4e6f14db17"
+}

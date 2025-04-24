@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n        SELECT\n            user_id, display_name, email, password_hash, date_of_birth as \"date_of_birth!: _\",\n            email_verified as \"email_verified!: _\",\n            created_at as \"created_at!\", updated_at as \"updated_at!\", deleted_at as \"deleted_at!: _\"\n        FROM users\n        WHERE email = $1\n        ",
+  "query": "\n        SELECT\n            user_id, display_name, email, email_verified as \"email_verified!: _\",\n            created_at as \"created_at!\", updated_at as \"updated_at!\", deleted_at as \"deleted_at!: _\"\n        FROM users\n        WHERE email = $1\n        ",
   "describe": {
     "columns": [
       {
@@ -20,31 +20,21 @@
       },
       {
         "ordinal": 3,
-        "name": "password_hash",
-        "type_info": "Text"
-      },
-      {
-        "ordinal": 4,
-        "name": "date_of_birth!: _",
-        "type_info": "Date"
-      },
-      {
-        "ordinal": 5,
         "name": "email_verified!: _",
         "type_info": "Bool"
       },
       {
-        "ordinal": 6,
+        "ordinal": 4,
         "name": "created_at!",
         "type_info": "Timestamptz"
       },
       {
-        "ordinal": 7,
+        "ordinal": 5,
         "name": "updated_at!",
         "type_info": "Timestamptz"
       },
       {
-        "ordinal": 8,
+        "ordinal": 6,
         "name": "deleted_at!: _",
         "type_info": "Timestamptz"
       }
@@ -58,13 +48,11 @@
       false,
       false,
       false,
-      false,
-      true,
       true,
       true,
       true,
       true
     ]
   },
-  "hash": "980c601b8ec5e3a0fbaadb093e6847e94e71b98729f7be9516ce1b6d20b1ec3e"
+  "hash": "8d40318df6357413c78dce86ca06d683bb3404807a93e9a5832358adcca47eeb"
 }

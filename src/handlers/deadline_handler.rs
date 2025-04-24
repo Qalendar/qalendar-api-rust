@@ -55,13 +55,19 @@ pub async fn create_deadline(
     }
 
 
+    let virtual_due_date = match &payload.virtual_due_date {
+        Some(date_str) => Some(parse_timestamp(date_str)?),
+        None => None,
+    };
+
     let created_deadline = sqlx::query_as!(
         Deadline,
         r#"
-        INSERT INTO deadlines (user_id, category_id, title, description, due_date, priority, workload_magnitude, workload_unit)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        INSERT INTO deadlines (user_id, category_id, title, description, due_date, virtual_due_date, priority,
+        workload_magnitude, workload_unit)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
         RETURNING
-           deadline_id, user_id, category_id, title, description, due_date, priority as "priority!: _",
+           deadline_id, user_id, category_id, title, description, due_date, virtual_due_date, priority as "priority!: _",
            workload_magnitude as "workload_magnitude!: _", workload_unit as "workload_unit!: _",
            created_at as "created_at!", updated_at as "updated_at!", deleted_at as "deleted_at!: _"
         "#,
@@ -70,9 +76,10 @@ pub async fn create_deadline(
         title,
         description,
         due_date,
-        priority as DeadlinePriorityLevel, // Cast to the SQLx type alias
+        virtual_due_date,
+        priority as DeadlinePriorityLevel,
         workload_magnitude,
-        workload_unit as Option<WorkloadUnitType>, // Cast to the SQLx type alias Option
+        workload_unit as Option<WorkloadUnitType>,
     )
     .fetch_one(&state.pool)
     .await?;
@@ -89,7 +96,7 @@ pub async fn get_deadlines(
         Deadline,
         r#"
         SELECT
-           deadline_id, user_id, category_id, title, description, due_date, priority as "priority!: _",
+           deadline_id, user_id, category_id, title, description, due_date, virtual_due_date, priority as "priority!: _",
            workload_magnitude as "workload_magnitude!: _", workload_unit as "workload_unit!: _",
            created_at as "created_at!", updated_at as "updated_at!", deleted_at as "deleted_at!: _"
         FROM deadlines
@@ -114,7 +121,7 @@ pub async fn get_deadline_by_id(
         Deadline,
         r#"
         SELECT
-           deadline_id, user_id, category_id, title, description, due_date, priority as "priority!: _",
+           deadline_id, user_id, category_id, title, description, due_date, virtual_due_date, priority as "priority!: _",
            workload_magnitude as "workload_magnitude!: _", workload_unit as "workload_unit!: _",
            created_at as "created_at!", updated_at as "updated_at!", deleted_at as "deleted_at!: _"
         FROM deadlines
@@ -146,7 +153,8 @@ pub async fn update_deadline(
         Deadline,
         r#"
         SELECT
-           deadline_id, user_id, category_id, title, description, due_date, priority as "priority!: _",
+           deadline_id, user_id, category_id, title, description, due_date, virtual_due_date as "virtual_due_date!: _",
+           priority as "priority!: _",
            workload_magnitude as "workload_magnitude!: _", workload_unit as "workload_unit!: _",
            created_at as "created_at!", updated_at as "updated_at!", deleted_at as "deleted_at!: _"
         FROM deadlines
@@ -219,13 +227,15 @@ pub async fn update_deadline(
             title = $2,
             description = $3,
             due_date = $4,
-            priority = $5,
-            workload_magnitude = $6,
-            workload_unit = $7
+            virtual_due_date = $5,
+            priority = $6,
+            workload_magnitude = $7,
+            workload_unit = $8
             -- updated_at trigger handles timestamp
-        WHERE deadline_id = $8 AND user_id = $9 -- Double-check user_id here again for safety
+        WHERE deadline_id = $9 AND user_id = $10 -- Double-check user_id here again for safety
         RETURNING
-           deadline_id, user_id, category_id, title, description, due_date, priority as "priority!: _",
+           deadline_id, user_id, category_id, title, description, due_date, virtual_due_date as "virtual_due_date!: _",
+           priority as "priority!: _",
            workload_magnitude as "workload_magnitude!: _", workload_unit as "workload_unit!: _",
            created_at as "created_at!", updated_at as "updated_at!", deleted_at as "deleted_at!: _"
         "#,
@@ -233,6 +243,7 @@ pub async fn update_deadline(
         deadline_to_update.title,
         deadline_to_update.description,
         deadline_to_update.due_date,
+        deadline_to_update.virtual_due_date,
         deadline_to_update.priority as DeadlinePriorityLevel,
         deadline_to_update.workload_magnitude,
         deadline_to_update.workload_unit as Option<WorkloadUnitType>,

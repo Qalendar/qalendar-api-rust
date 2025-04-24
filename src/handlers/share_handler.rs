@@ -13,7 +13,7 @@ use crate::{
             ShareDetailsResponse, ListSharesResponseItem, SharedWithUserDetail // Import response structs
         },
         enums::SharePrivacyLevel,
-        user::User, // Need to look up shared_with user by email
+        user::{User, BasicUserInfo}, // Need to look up shared_with user by email
     },
     middleware::auth::AuthenticatedUser,
 };
@@ -97,11 +97,10 @@ pub async fn create_share(
 
     // 1. Find the user to share with by email
     let shared_with_user = sqlx::query_as!(
-        User,
+        BasicUserInfo,
         r#"
         SELECT
-            user_id, display_name, email, password_hash, date_of_birth as "date_of_birth!: _",
-            email_verified as "email_verified!: _",
+            user_id, display_name, email, email_verified as "email_verified!: _",
             created_at as "created_at!", updated_at as "updated_at!", deleted_at as "deleted_at!: _"
         FROM users
         WHERE email = $1

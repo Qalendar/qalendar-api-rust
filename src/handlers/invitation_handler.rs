@@ -6,7 +6,7 @@ use sqlx::{PgPool, Row, types::chrono::Utc}; // Added Row for exists check
 use validator::Validate;
 use crate::{
     errors::AppError, middleware::auth::AuthenticatedUser, models::{
-        enums::EventInvitationStatus, event_invitation::{EventInvitation, EventInvitationResponseItem, InvitationResponsePayload, InviteUserPayload, ListEventInvitationsParams, ListMyInvitationsParams, MyInvitationResponseItem}, user::User // Need User model to look up invitee by email
+        enums::EventInvitationStatus, event_invitation::{EventInvitation, EventInvitationResponseItem, InvitationResponsePayload, InviteUserPayload, ListEventInvitationsParams, ListMyInvitationsParams, MyInvitationResponseItem}, user::{User, BasicUserInfo} // Need User model to look up invitee by email
     }, AppState
 };
 
@@ -52,10 +52,10 @@ pub async fn create_invitation(
 
     // 2. Find the user to invite by email
     let invited_user = sqlx::query_as!(
-        User, // Need to import User model
+        BasicUserInfo, // Need to import User model
         r#"
         SELECT
-            user_id, display_name, email, password_hash, date_of_birth as "date_of_birth!: _",
+            user_id, display_name, email,
             email_verified as "email_verified!",
             created_at as "created_at!", updated_at as "updated_at!", deleted_at as "deleted_at!: _"
         FROM users
@@ -69,8 +69,8 @@ pub async fn create_invitation(
     let invited_user = match invited_user {
         Some(user) => user,
         None => {
-             // User not found means they cannot be invited
-             // Consider a specific error like AppError::InvitedUserNotFound
+            // User not found means they cannot be invited
+            // Consider a specific error like AppError::InvitedUserNotFound
             return Err(AppError::UserNotFound); // Re-using UserNotFound for now
         }
     };

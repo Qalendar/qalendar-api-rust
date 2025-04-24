@@ -58,7 +58,10 @@ CREATE TABLE categories (
     UNIQUE (user_id, name)
 );
 DROP TRIGGER IF EXISTS set_timestamp_categories ON categories;
-CREATE TRIGGER set_timestamp_categories BEFORE UPDATE ON categories FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp();
+CREATE TRIGGER set_timestamp_categories
+BEFORE UPDATE ON categories
+FOR EACH ROW
+EXECUTE FUNCTION trigger_set_timestamp();
 
 -- Define ENUM Types
 CREATE TYPE deadline_priority_level AS ENUM ('normal', 'important', 'urgent');
@@ -74,6 +77,7 @@ CREATE TABLE deadlines (
     title VARCHAR(255) NOT NULL,
     description TEXT,
     due_date TIMESTAMP WITH TIME ZONE NOT NULL,
+    virtual_due_date TIMESTAMP WITH TIME ZONE, -- For virtual deadlines, this is the date/time of the next occurrence
     priority deadline_priority_level DEFAULT 'normal',
     workload_magnitude INTEGER,
     workload_unit workload_unit_type,
@@ -86,7 +90,26 @@ CREATE TABLE deadlines (
 );
 DROP TRIGGER IF EXISTS set_timestamp_deadlines ON deadlines;
 CREATE TRIGGER set_timestamp_deadlines BEFORE UPDATE ON deadlines FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp();
+DROP TRIGGER IF EXISTS set_virtual_due_date_trigger ON deadlines;
+-- Function to automatically set virtual_due_date when NULL
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_proc WHERE proname = 'set_virtual_due_date') THEN
+        CREATE FUNCTION set_virtual_due_date()
+        RETURNS TRIGGER AS $func$
+        BEGIN
+          IF NEW.virtual_due_date IS NULL THEN
+            NEW.virtual_due_date := NEW.due_date;
+          END IF;
+          RETURN NEW;
+        END;
+        $func$ LANGUAGE plpgsql;
+    END IF;
+END $$;
 
+CREATE TRIGGER set_virtual_due_date_trigger
+BEFORE INSERT ON deadlines
+FOR EACH ROW
+EXECUTE FUNCTION set_virtual_due_date();
 -- Events Table
 CREATE TABLE events (
     event_id SERIAL PRIMARY KEY,

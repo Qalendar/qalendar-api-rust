@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n        SELECT\n           deadline_id, user_id, category_id, title, description as \"description!: _\",\n           due_date as \"due_date!\", priority as \"priority!: _\",\n           workload_magnitude as \"workload_magnitude!: _\", workload_unit as \"workload_unit!: _\",\n           created_at as \"created_at!\", updated_at as \"updated_at!\", deleted_at as \"deleted_at!: _\"\n        FROM deadlines\n        WHERE user_id = $1 AND ( ($2::TIMESTAMPTZ IS NULL) OR (updated_at > $2) )\n        ",
+  "query": "\n        SELECT\n           deadline_id, user_id, category_id, title, description as \"description!: _\",\n           due_date as \"due_date!\", virtual_due_date as \"virtual_due_date!: _\",\n           priority as \"priority!: _\",\n           workload_magnitude as \"workload_magnitude!: _\", workload_unit as \"workload_unit!: _\",\n           created_at as \"created_at!\", updated_at as \"updated_at!\", deleted_at as \"deleted_at!: _\"\n        FROM deadlines\n        WHERE user_id = $1 -- Only deadlines owned by the sharer\n          AND category_id = ANY($2) -- Filter by shared categories\n          AND ( ($3::TIMESTAMPTZ IS NULL) OR (updated_at > $3) ) -- Filter by deadline update time\n        ORDER BY due_date\n        ",
   "describe": {
     "columns": [
       {
@@ -35,6 +35,11 @@
       },
       {
         "ordinal": 6,
+        "name": "virtual_due_date!: _",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 7,
         "name": "priority!: _",
         "type_info": {
           "Custom": {
@@ -50,12 +55,12 @@
         }
       },
       {
-        "ordinal": 7,
+        "ordinal": 8,
         "name": "workload_magnitude!: _",
         "type_info": "Int4"
       },
       {
-        "ordinal": 8,
+        "ordinal": 9,
         "name": "workload_unit!: _",
         "type_info": {
           "Custom": {
@@ -71,17 +76,17 @@
         }
       },
       {
-        "ordinal": 9,
+        "ordinal": 10,
         "name": "created_at!",
         "type_info": "Timestamptz"
       },
       {
-        "ordinal": 10,
+        "ordinal": 11,
         "name": "updated_at!",
         "type_info": "Timestamptz"
       },
       {
-        "ordinal": 11,
+        "ordinal": 12,
         "name": "deleted_at!: _",
         "type_info": "Timestamptz"
       }
@@ -89,6 +94,7 @@
     "parameters": {
       "Left": [
         "Int4",
+        "Int4Array",
         "Timestamptz"
       ]
     },
@@ -104,8 +110,9 @@
       true,
       true,
       true,
+      true,
       true
     ]
   },
-  "hash": "c329cfef99c2b7558959e3e4783c8d9ba0b8b0b343dbb682cf9854db73416b1b"
+  "hash": "6e41cfcaa535a1148b4365a21087dc03ed0646beeb1302f7a24f35818e27a398"
 }
