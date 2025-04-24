@@ -11,7 +11,8 @@ pub fn shared_calendar_routes(app_state: AppState) -> Router<AppState> {
         // Base route: /api/shared-calendars (List calendars shared WITH me)
         .route("/", get(calendar_handler::list_received_shares))
         // Route for getting content of a specific shared calendar: /api/shared-calendars/:share_id
-        // .route("/:share_id", get(calendar_handler::get_shared_calendar_content)) // Implement later
+        // Route: /api/calendar/shares/:share_id (View a specific shared calendar)
+        .route("/:share_id", get(calendar_handler::get_shared_calendar))
         // Make AppState available
         .with_state(app_state)
 }
