@@ -5,7 +5,7 @@ use crate::middleware::auth::AuthenticatedUser; // Import the extractor
 use axum::Json; // For returning JSON responses
 use serde_json::json; // For simple JSON responses
 
-use super::{category, deadline, event, invitation};
+use super::{category, deadline, event, invitation, calendar_share}; // Import submodules
 
 // Handler that requires authentication
 // Axum automatically runs the AuthenticatedUser extractor before this handler
@@ -39,6 +39,7 @@ pub fn me_routes(app_state: AppState) -> Router {
     let deadlines_router = deadline::deadlines_routes(app_state.clone());
     let events_router = event::events_routes(app_state.clone());
     let invitations_router = invitation::invitations_routes(app_state.clone());
+    let calendar_share_router = calendar_share::share_routes(app_state.clone());
 
     Router::new()
        // Define the base protected route /api/me
@@ -47,6 +48,7 @@ pub fn me_routes(app_state: AppState) -> Router {
        .nest("/deadlines", deadlines_router)   // /api/me/deadlines
        .nest("/events", events_router) // /api/me/events
        .nest("/invitations", invitations_router) // /api/me/invitations
+       .nest("/shares", calendar_share_router) // /api/me/shares
        // Make AppState available to direct /me handlers (like get_authenticated_user_info)
        .with_state(app_state)
 }

@@ -63,7 +63,7 @@ pub async fn create_deadline(
         RETURNING
            deadline_id, user_id, category_id, title, description, due_date, priority as "priority!: _",
            workload_magnitude as "workload_magnitude!: _", workload_unit as "workload_unit!: _",
-           created_at as "created_at!: _", updated_at as "updated_at!: _"
+           created_at as "created_at!", updated_at as "updated_at!"
         "#,
         user_id,
         category_id,
@@ -91,7 +91,7 @@ pub async fn get_deadlines(
         SELECT
            deadline_id, user_id, category_id, title, description, due_date, priority as "priority!: _",
            workload_magnitude as "workload_magnitude!: _", workload_unit as "workload_unit!: _",
-           created_at as "created_at!: _", updated_at as "updated_at!: _"
+           created_at as "created_at!", updated_at as "updated_at!"
         FROM deadlines
         WHERE user_id = $1
         ORDER BY due_date -- Optional: order by due date
@@ -116,7 +116,7 @@ pub async fn get_deadline_by_id(
         SELECT
            deadline_id, user_id, category_id, title, description, due_date, priority as "priority!: _",
            workload_magnitude as "workload_magnitude!: _", workload_unit as "workload_unit!: _",
-           created_at as "created_at!: _", updated_at as "updated_at!: _"
+           created_at as "created_at!", updated_at as "updated_at!"
         FROM deadlines
         WHERE deadline_id = $1 AND user_id = $2 -- IMPORTANT: Check user_id!
         "#,
@@ -148,7 +148,7 @@ pub async fn update_deadline(
         SELECT
            deadline_id, user_id, category_id, title, description, due_date, priority as "priority!: _",
            workload_magnitude as "workload_magnitude!: _", workload_unit as "workload_unit!: _",
-           created_at as "created_at!: _", updated_at as "updated_at!: _"
+           created_at as "created_at!", updated_at as "updated_at!"
         FROM deadlines
         WHERE deadline_id = $1 AND user_id = $2
         "#,
@@ -227,7 +227,7 @@ pub async fn update_deadline(
         RETURNING
            deadline_id, user_id, category_id, title, description, due_date, priority as "priority!: _",
            workload_magnitude as "workload_magnitude!: _", workload_unit as "workload_unit!: _",
-           created_at as "created_at!: _", updated_at as "updated_at!: _"
+           created_at as "created_at!", updated_at as "updated_at!"
         "#,
         deadline_to_update.category_id,
         deadline_to_update.title,

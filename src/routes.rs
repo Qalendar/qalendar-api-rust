@@ -7,7 +7,8 @@ pub mod me; // Declare the me submodule
 pub mod category; // Declare the category submodule
 pub mod deadline; // Declare the deadline submodule
 pub mod event; // Declare the event submodule
-pub mod invitation;
+pub mod invitation; // Declare the invitation submodule
+pub mod calendar_share; // Declare the calendar_share submodule
 
 // Function to create the main API router, combining all sub-routers
 pub fn create_api_router(app_state: AppState) -> Router {

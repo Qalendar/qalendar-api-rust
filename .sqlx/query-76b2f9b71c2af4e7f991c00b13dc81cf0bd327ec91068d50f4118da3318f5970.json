@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n        SELECT\n            user_id, display_name, email, password_hash, date_of_birth as \"date_of_birth!: _\",\n            email_verified as \"email_verified!\", created_at as \"created_at!: _\", updated_at as \"updated_at!: _\"\n        FROM users\n        WHERE email = $1\n        ",
+  "query": "\n        SELECT\n            user_id, display_name, email, password_hash, date_of_birth as \"date_of_birth!: _\",\n            email_verified as \"email_verified!\", created_at as \"created_at!\", updated_at as \"updated_at!\"\n        FROM users\n        WHERE email = $1\n        ",
   "describe": {
     "columns": [
       {
@@ -35,12 +35,12 @@
       },
       {
         "ordinal": 6,
-        "name": "created_at!: _",
+        "name": "created_at!",
         "type_info": "Timestamptz"
       },
       {
         "ordinal": 7,
-        "name": "updated_at!: _",
+        "name": "updated_at!",
         "type_info": "Timestamptz"
       }
     ],
@@ -60,5 +60,5 @@
       true
     ]
   },
-  "hash": "75314558585e19a0abf49e2e041816692df50f2b6d278c5df669e1fa410ecb39"
+  "hash": "76b2f9b71c2af4e7f991c00b13dc81cf0bd327ec91068d50f4118da3318f5970"
 }
