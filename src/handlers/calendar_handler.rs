@@ -5,20 +5,11 @@ use axum::{
 use sqlx::{PgPool, types::chrono::Utc};
 use validator::Validate;
 use crate::{
-    AppState,
-    errors::AppError,
-    models::{
-        calendar_share::{
+    errors::AppError, middleware::auth::AuthenticatedUser, models::{
+        calendar::UserCalendarResponse, calendar_share::{
             ReceivedShareResponseItem, ShareOwnerDetail // Import new models
-        },
-        enums::SharePrivacyLevel,
-        // Will need models for events, deadlines, event_exceptions, etc. later
-        event::Event,
-        deadline::Deadline,
-        event_invitation::EventInvitation,
-        user::User, // Needed for shared calendar view handler
-    },
-    middleware::auth::AuthenticatedUser,
+        }, deadline::Deadline, enums::{EventInvitationStatus, SharePrivacyLevel}, event::Event, event_invitation::EventInvitation, user::User // Needed for shared calendar view handler
+    }, AppState
 };
 use chrono::DateTime; // For parsing date strings
 
@@ -83,4 +74,65 @@ pub async fn list_received_shares(
     // or let the frontend handle it based on expires_at date.
 
     Ok(Json(shares))
+}
+
+// --- Get User Calendar Items (GET /api/calendar) ---
+// Returns all owned events, owned deadlines, and accepted invited events
+pub async fn get_user_calendar(
+    State(state): State<AppState>,
+    AuthenticatedUser { user_id: authenticated_user_id }: AuthenticatedUser,
+    // No Query parameters needed for ranges in this simplified version
+) -> Result<Json<UserCalendarResponse>, AppError> {
+
+    // Query 1: Fetch all owned events AND events where the user is an accepted invitee
+    let events = sqlx::query_as!(
+        Event,
+        r#"
+        SELECT
+           event_id, user_id, category_id, title, description as "description!: _",
+           start_time, end_time, location as "location!: _", rrule as "rrule!: _",
+           created_at as "created_at!", updated_at as "updated_at!"
+        FROM events
+        WHERE user_id = $1 -- Owned events
+           OR event_id IN (
+               SELECT event_id
+               FROM event_invitations
+               WHERE invited_user_id = $1 AND status = $2
+           ) -- Accepted invited events
+        ORDER BY start_time
+        "#,
+        authenticated_user_id,
+        EventInvitationStatus::Accepted as EventInvitationStatus // Bind the ENUM value for filtering accepted invites
+    )
+    .fetch_all(&state.pool)
+    .await?; // Propagates sqlx::Error -> AppError::DatabaseError
+
+
+    // Query 2: Fetch all owned deadlines
+    let deadlines = sqlx::query_as!(
+        Deadline,
+        r#"
+        SELECT
+           deadline_id, user_id, category_id, title, description as "description!: _",
+           due_date, priority as "priority!: _",
+           workload_magnitude as "workload_magnitude!: _", workload_unit as "workload_unit!: _",
+           created_at as "created_at!", updated_at as "updated_at!"
+        FROM deadlines
+        WHERE user_id = $1 -- Owned deadlines
+        ORDER BY due_date -- Order by due date
+        "#,
+        authenticated_user_id,
+        // No second parameter needed for deadlines query
+    )
+    .fetch_all(&state.pool)
+    .await?; // Propagates sqlx::Error -> AppError::DatabaseError
+
+
+    // Combine results into the response struct
+    let response = UserCalendarResponse {
+        events,
+        deadlines,
+    };
+
+    Ok(Json(response))
 }
