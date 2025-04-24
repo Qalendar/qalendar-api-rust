@@ -29,7 +29,8 @@ pub async fn create_category(
         r#"
         INSERT INTO categories (user_id, name, color)
         VALUES ($1, $2, $3)
-        RETURNING category_id, user_id, name, color, is_visible as "is_visible!", created_at as "created_at!", updated_at as "updated_at!"
+        RETURNING category_id, user_id, name, color, is_visible as "is_visible!",
+        created_at as "created_at!", updated_at as "updated_at!", deleted_at as "deleted_at!: _"
         "#,
         user_id, // Use the authenticated user_id
         name,
@@ -50,7 +51,8 @@ pub async fn get_categories(
     let categories = sqlx::query_as!(
         Category,
         r#"
-        SELECT category_id, user_id, name, color, is_visible as "is_visible!", created_at as "created_at!", updated_at as "updated_at!"
+        SELECT category_id, user_id, name, color, is_visible as "is_visible!",
+        created_at as "created_at!", updated_at as "updated_at!", deleted_at as "deleted_at!: _"
         FROM categories
         WHERE user_id = $1
         ORDER BY name -- Optional: order alphabetically
@@ -72,7 +74,8 @@ pub async fn get_category_by_id(
     let category = sqlx::query_as!(
         Category,
         r#"
-        SELECT category_id, user_id, name, color, is_visible as "is_visible!", created_at as "created_at!", updated_at as "updated_at!"
+        SELECT category_id, user_id, name, color, is_visible as "is_visible!",
+        created_at as "created_at!", updated_at as "updated_at!", deleted_at as "deleted_at!: _"
         FROM categories
         WHERE category_id = $1 AND user_id = $2 -- IMPORTANT: Check user_id!
         "#,
@@ -101,7 +104,8 @@ pub async fn update_category(
     let existing_category = sqlx::query_as!(
         Category,
         r#"
-        SELECT category_id, user_id, name, color, is_visible as "is_visible!", created_at as "created_at!", updated_at as "updated_at!"
+        SELECT category_id, user_id, name, color, is_visible as "is_visible!",
+        created_at as "created_at!", updated_at as "updated_at!", deleted_at as "deleted_at!: _"
         FROM categories
         WHERE category_id = $1 AND user_id = $2
         "#,
@@ -134,7 +138,8 @@ pub async fn update_category(
         UPDATE categories
         SET name = $1, color = $2, is_visible = $3 -- updated_at trigger handles timestamp
         WHERE category_id = $4 AND user_id = $5 -- Double-check user_id here again for safety
-        RETURNING category_id, user_id, name, color, is_visible as "is_visible!", created_at as "created_at!", updated_at as "updated_at!"
+        RETURNING category_id, user_id, name, color, is_visible as "is_visible!",
+        created_at as "created_at!", updated_at as "updated_at!", deleted_at as "deleted_at!: _"
         "#,
         category_to_update.name,
         category_to_update.color,
@@ -157,7 +162,8 @@ pub async fn delete_category(
     // Perform the delete query. Check for user_id!
     let delete_result = sqlx::query!(
         r#"
-        DELETE FROM categories
+        UPDATE categories
+        SET deleted_at = NOW() -- Soft delete
         WHERE category_id = $1 AND user_id = $2
         "#,
         category_id,

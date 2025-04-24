@@ -21,6 +21,7 @@ pub struct CalendarShare {
     pub expires_at: Option<DateTime<Utc>>, // Can be NULL
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    pub deleted_at: Option<DateTime<Utc>>,
 }
 
 
@@ -77,6 +78,7 @@ pub struct SharedWithUserDetail {
     #[serde(rename = "displayName")]
     pub display_name: String,
     pub email: String,
+    pub deleted_at: Option<DateTime<Utc>>,
 }
 
 
@@ -102,6 +104,7 @@ pub struct ShareDetailsResponse {
     
     // Category IDs
     pub shared_category_ids: Vec<i32>,
+    pub deleted_at: Option<DateTime<Utc>>,
 }
 
 // Response struct for GET /api/me/shares (list all shares)
@@ -118,6 +121,7 @@ pub struct ShareOwnerDetail {
     #[serde(rename = "displayName")]
     pub display_name: String,
     pub email: String,
+    pub deleted_at: Option<DateTime<Utc>>,
 }
 
 
@@ -149,4 +153,6 @@ pub struct ReceivedShareResponseItem {
     // Use Option<Vec<i32>> to gracefully handle potential NULL from ARRAY_AGG
     // #[sqlx(json)] // Tell sqlx how to handle the array_agg result (as JSON array string)
     pub shared_category_ids: Option<Vec<i32>>,
+
+    pub deleted_at: Option<DateTime<Utc>>,
 }

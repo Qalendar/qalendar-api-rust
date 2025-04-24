@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        UPDATE events\n        SET deleted_at = NOW() -- Soft delete\n        WHERE event_id = $1 AND user_id = $2\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "3260ba3be4f6212ee0eb3ffd4dce91d3942deb2284adbd7fd94d13bd4c9826d3"
+}

@@ -56,7 +56,8 @@ pub async fn create_invitation(
         r#"
         SELECT
             user_id, display_name, email, password_hash, date_of_birth as "date_of_birth!: _",
-            email_verified as "email_verified!", created_at as "created_at!", updated_at as "updated_at!"
+            email_verified as "email_verified!",
+            created_at as "created_at!", updated_at as "updated_at!", deleted_at as "deleted_at!: _"
         FROM users
         WHERE email = $1
         "#,
@@ -104,7 +105,7 @@ pub async fn create_invitation(
         VALUES ($1, $2, $3)
         RETURNING
             invitation_id, event_id, owner_user_id, invited_user_id, status as "status!: _",
-            created_at as "created_at!", updated_at as "updated_at!"
+            created_at as "created_at!", updated_at as "updated_at!", deleted_at as "deleted_at!: _"
         "#,
         event_id,
         owner_user_id,
@@ -146,7 +147,7 @@ pub async fn list_invitations_for_event(
             u.date_of_birth,
             u.email_verified,
             u.created_at AS user_created_at,
-            u.updated_at AS user_updated_at
+            u.updated_at AS user_updated_at,
         FROM event_invitations ei
         JOIN users u ON ei.invited_user_id = u.user_id
         WHERE ei.event_id = 
@@ -189,7 +190,8 @@ pub async fn revoke_invitation(
     // 2. Perform the delete query. Check event_id, invitation_id, AND owner_user_id!
     let delete_result = sqlx::query!(
         r#"
-        DELETE FROM event_invitations
+        UPDATE event_invitations
+        SET deleted_at = NOW() -- Soft delete
         WHERE invitation_id = $1 AND event_id = $2 AND owner_user_id = $3
         "#,
         invitation_id,
@@ -290,7 +292,7 @@ pub async fn respond_to_invitation(
         SET status = $1 -- updated_at trigger handles timestamp
         WHERE invitation_id = $2 AND invited_user_id = $3 -- IMPORTANT: Check invited_user_id!
         RETURNING invitation_id, event_id, owner_user_id, invited_user_id, status as "status!: _",
-        created_at as "created_at!", updated_at as "updated_at!"
+        created_at as "created_at!", updated_at as "updated_at!", deleted_at as "deleted_at!: _"
         "#,
         new_status as EventInvitationStatus, // Cast the ENUM
         invitation_id,

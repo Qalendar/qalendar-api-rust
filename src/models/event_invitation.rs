@@ -19,6 +19,7 @@ pub struct EventInvitation {
     pub updated_at: DateTime<Utc>,
     // Optional: Could include details of the event itself here if needed often
     // but joining tables in queries is usually better.
+    pub deleted_at: Option<DateTime<Utc>>,
 }
 
 
@@ -87,6 +88,7 @@ pub struct MyInvitationResponseItem {
     // Use aliases for timestamps to avoid clash with invitation timestamps
     pub event_created_at: DateTime<Utc>,
     pub event_updated_at: DateTime<Utc>,
+    pub deleted_at: Option<DateTime<Utc>>,
 }
 
 // Keep this as a conversion target for API responses, serialization, or documentation if needed
@@ -124,6 +126,7 @@ pub struct EventInvitationResponseItem {
     pub invited_user_id: i32, // The invited user's ID
     pub invited_user_display_name: String,
     pub invited_user_email: String,
+    pub deleted_at: Option<DateTime<Utc>>,
 }
 
 // Keep this as a conversion target for API responses, serialization, or documentation if needed

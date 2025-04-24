@@ -58,7 +58,7 @@ pub async fn create_event(
         RETURNING
            event_id, user_id, category_id, title, description as "description!: _", start_time, end_time,
            location as "location!: _", rrule as "rrule!: _",
-           created_at as "created_at!", updated_at as "updated_at!"
+           created_at as "created_at!", updated_at as "updated_at!", deleted_at as "deleted_at!: _"
         "#,
         user_id,
         category_id,
@@ -86,7 +86,7 @@ pub async fn get_events(
         SELECT
            event_id, user_id, category_id, title, description as "description!: _", start_time, end_time,
            location as "location!: _", rrule as "rrule!: _",
-           created_at as "created_at!", updated_at as "updated_at!"
+           created_at as "created_at!", updated_at as "updated_at!", deleted_at as "deleted_at!: _"
         FROM events
         WHERE user_id = $1
         ORDER BY start_time -- Optional: order by start time
@@ -111,7 +111,7 @@ pub async fn get_event_by_id(
         SELECT
            event_id, user_id, category_id, title, description as "description!: _", start_time, end_time,
            location as "location!: _", rrule as "rrule!: _",
-           created_at as "created_at!", updated_at as "updated_at!"
+           created_at as "created_at!", updated_at as "updated_at!", deleted_at as "deleted_at!: _"
         FROM events
         WHERE event_id = $1 AND user_id = $2 -- IMPORTANT: Check user_id!
         "#,
@@ -143,7 +143,7 @@ pub async fn update_event(
         SELECT
            event_id, user_id, category_id, title, description as "description!: _", start_time, end_time,
            location as "location!: _", rrule as "rrule!: _",
-           created_at as "created_at!", updated_at as "updated_at!"
+           created_at as "created_at!", updated_at as "updated_at!", deleted_at as "deleted_at!: _"
         FROM events
         WHERE event_id = $1 AND user_id = $2
         "#,
@@ -225,7 +225,7 @@ pub async fn update_event(
         RETURNING
            event_id, user_id, category_id, title, description as "description!: _", start_time, end_time,
            location as "location!: _", rrule as "rrule!: _",
-           created_at as "created_at!", updated_at as "updated_at!"
+           created_at as "created_at!", updated_at as "updated_at!", deleted_at as "deleted_at!: _"
         "#,
         event_to_update.category_id,
         event_to_update.title,
@@ -251,7 +251,8 @@ pub async fn delete_event(
 ) -> Result<StatusCode, AppError> {
     let delete_result = sqlx::query!(
         r#"
-        DELETE FROM events
+        UPDATE events
+        SET deleted_at = NOW() -- Soft delete
         WHERE event_id = $1 AND user_id = $2
         "#,
         event_id,

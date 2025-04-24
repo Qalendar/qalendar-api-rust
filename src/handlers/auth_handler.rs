@@ -91,7 +91,8 @@ pub async fn login_user_handler(
         SELECT user_id, display_name, email, password_hash, date_of_birth, 
                email_verified as "email_verified!", 
                created_at as "created_at!", 
-               updated_at as "updated_at!"
+               updated_at as "updated_at!",
+               deleted_at as "deleted_at!: _"
         FROM users WHERE email = $1
         "#,
         email

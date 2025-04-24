@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        UPDATE calendar_shares\n        SET deleted_at = NOW() -- Soft delete\n        WHERE share_id = $1 AND owner_user_id = $2\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "70414e0dadb3ee82800310256dc34140c341c84aa3a0fff3b002756cd8e34c17"
+}

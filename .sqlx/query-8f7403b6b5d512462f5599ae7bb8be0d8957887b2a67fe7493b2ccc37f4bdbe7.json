@@ -1,0 +1,94 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        INSERT INTO calendar_shares (owner_user_id, shared_with_user_id, message, privacy_level, expires_at)\n        VALUES ($1, $2, $3, $4, $5)\n        RETURNING share_id, owner_user_id, shared_with_user_id, message as \"message!: _\",\n        privacy_level as \"privacy_level!: _\", expires_at as \"expires_at!: _\",\n        created_at as \"created_at!\", updated_at as \"updated_at!\", deleted_at as \"deleted_at!: _\"\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "share_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "owner_user_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 2,
+        "name": "shared_with_user_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 3,
+        "name": "message!: _",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "privacy_level!: _",
+        "type_info": {
+          "Custom": {
+            "name": "share_privacy_level",
+            "kind": {
+              "Enum": [
+                "full_details",
+                "busy_only"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "expires_at!: _",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 6,
+        "name": "created_at!",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 7,
+        "name": "updated_at!",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 8,
+        "name": "deleted_at!: _",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Int4",
+        "Text",
+        {
+          "Custom": {
+            "name": "share_privacy_level",
+            "kind": {
+              "Enum": [
+                "full_details",
+                "busy_only"
+              ]
+            }
+          }
+        },
+        "Timestamptz"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      false,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "8f7403b6b5d512462f5599ae7bb8be0d8957887b2a67fe7493b2ccc37f4bdbe7"
+}

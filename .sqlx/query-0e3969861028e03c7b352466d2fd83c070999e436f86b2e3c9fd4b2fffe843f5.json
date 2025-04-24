@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE calendar_share_categories SET deleted_at = NOW() WHERE share_id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "0e3969861028e03c7b352466d2fd83c070999e436f86b2e3c9fd4b2fffe843f5"
+}

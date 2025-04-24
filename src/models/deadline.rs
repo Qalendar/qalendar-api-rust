@@ -21,6 +21,7 @@ pub struct Deadline {
     pub workload_unit: Option<WorkloadUnitType>, // Corresponds to ENUM, can be NULL
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    pub deleted_at: Option<DateTime<Utc>>,
 }
 
 // --- API Payloads ---

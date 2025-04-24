@@ -1,0 +1,102 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        WITH RelevantEvents AS (\n            -- Owned Events Updated Since\n            SELECT event_id FROM events\n            WHERE user_id = $1 AND ( ($2::TIMESTAMPTZ IS NULL) OR (updated_at > $2) )\n            UNION\n            -- Events Where I am Accepted Invitee AND Invitation Status Changed Since\n            SELECT event_id FROM event_invitations\n            WHERE invited_user_id = $1 AND status = $3 AND ( ($2::TIMESTAMPTZ IS NULL) OR (updated_at > $2) )\n            UNION\n            -- Events Where I am Accepted Invitee AND Event Itself Changed Since\n            SELECT ei.event_id FROM event_invitations ei\n            JOIN events e ON ei.event_id = e.event_id\n            WHERE ei.invited_user_id = $1 AND ei.status = $3 AND ( ($2::TIMESTAMPTZ IS NULL) OR (e.updated_at > $2) )\n        )\n        SELECT\n           e.event_id, e.user_id, e.category_id, e.title, e.description as \"description!: _\",\n           e.start_time as \"start_time!\", e.end_time as \"end_time!\",\n           e.location as \"location!: _\", e.rrule as \"rrule!: _\",\n           e.created_at as \"created_at!\", e.updated_at as \"updated_at!\", e.deleted_at as \"deleted_at!: _\"\n        FROM events e\n        JOIN RelevantEvents re ON e.event_id = re.event_id\n        ORDER BY e.start_time\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "event_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "user_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 2,
+        "name": "category_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 3,
+        "name": "title",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 4,
+        "name": "description!: _",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "start_time!",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 6,
+        "name": "end_time!",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 7,
+        "name": "location!: _",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 8,
+        "name": "rrule!: _",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 9,
+        "name": "created_at!",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 10,
+        "name": "updated_at!",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 11,
+        "name": "deleted_at!: _",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Timestamptz",
+        {
+          "Custom": {
+            "name": "event_invitation_status",
+            "kind": {
+              "Enum": [
+                "pending",
+                "accepted",
+                "rejected",
+                "maybe"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "2bed84ce206afba16b59776b26c36cf8276d03b22a3dc125e2e32c9decf3e4d1"
+}

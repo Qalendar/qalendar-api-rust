@@ -16,6 +16,7 @@ pub struct Category {
     pub is_visible: bool,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    pub deleted_at: Option<DateTime<Utc>>,
 }
 
 // --- API Payloads ---
@@ -31,6 +32,7 @@ pub struct CreateCategoryPayload {
     // is_visible will likely default on creation, or can be optional
     // #[validate(skip)] // Don't validate if not present, or handle in handler
     // pub is_visible: Option<bool>,
+    pub deleted_at: Option<DateTime<Utc>>,
 }
 
 #[derive(Deserialize, Validate, Debug)]

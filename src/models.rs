@@ -7,3 +7,4 @@ pub mod event;
 pub mod event_invitation;
 pub mod calendar_share;
 pub mod calendar;
+pub mod sync;

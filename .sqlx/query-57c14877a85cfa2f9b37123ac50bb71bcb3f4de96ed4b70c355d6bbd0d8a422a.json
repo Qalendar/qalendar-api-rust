@@ -1,0 +1,105 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT\n            cs.share_id, cs.owner_user_id, cs.shared_with_user_id, cs.message as \"message!: _\",\n            cs.privacy_level as \"privacy_level!: _\", cs.expires_at as \"expires_at!: _\",\n            cs.created_at as \"created_at!\", cs.updated_at as \"updated_at!\", cs.deleted_at as \"deleted_at!: _\",\n            u.user_id AS user_id_alias, u.display_name, u.email,\n            ARRAY_AGG(csc.category_id) FILTER (WHERE csc.category_id IS NOT NULL) AS \"shared_category_ids!: Vec<i32>\" -- Use FILTER for empty array\n        FROM calendar_shares cs\n        JOIN users u ON cs.shared_with_user_id = u.user_id\n        LEFT JOIN calendar_share_categories csc ON cs.share_id = csc.share_id\n        WHERE cs.share_id = $1 AND cs.owner_user_id = $2 -- Fetch the specific updated share\n        GROUP BY cs.share_id, u.user_id\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "share_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "owner_user_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 2,
+        "name": "shared_with_user_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 3,
+        "name": "message!: _",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "privacy_level!: _",
+        "type_info": {
+          "Custom": {
+            "name": "share_privacy_level",
+            "kind": {
+              "Enum": [
+                "full_details",
+                "busy_only"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "expires_at!: _",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 6,
+        "name": "created_at!",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 7,
+        "name": "updated_at!",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 8,
+        "name": "deleted_at!: _",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 9,
+        "name": "user_id_alias",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 10,
+        "name": "display_name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 11,
+        "name": "email",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 12,
+        "name": "shared_category_ids!: Vec<i32>",
+        "type_info": "Int4Array"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      false,
+      true,
+      true,
+      true,
+      true,
+      false,
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "57c14877a85cfa2f9b37123ac50bb71bcb3f4de96ed4b70c355d6bbd0d8a422a"
+}
