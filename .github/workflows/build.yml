@@ -2,7 +2,7 @@ name: Build Rust Qalendar API Server
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "develop" ]
 
 env:
   CARGO_TERM_COLOR: always
