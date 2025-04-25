@@ -28,9 +28,6 @@ jobs:
 
       - name: Zip app for Elastic Beanstalk
         run: zip -r deploy.zip . -x "target/*" "deploy.zip"
-      
-      - name: List zip file contents
-        run: unzip -l deploy.zip
 
       - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
