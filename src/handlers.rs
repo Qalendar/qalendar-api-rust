@@ -7,3 +7,4 @@ pub mod invitation_handler;
 pub mod share_handler;
 pub mod calendar_handler;
 pub mod sync_handler;
+pub mod ai_handler;

@@ -5,6 +5,7 @@ use axum::{
 };
 use serde_json::json;
 use validator::ValidationErrors;
+use async_openai::error::OpenAIError as AsyncOpenAIError;
 
 #[derive(Debug)] // Allow printing the error during development
 pub enum AppError {
@@ -18,7 +19,6 @@ pub enum AppError {
     UserNotFound, // More specific than InvalidCredentials sometimes
     ConfigurationError(String), // For config loading errors
     InternalServerError(String), // Catch-all for unexpected errors
-    // Add other specific errors as needed
     DeadlineNotFound,
     EventNotFound,
     CategoryNotFound,
@@ -38,7 +38,10 @@ pub enum AppError {
     TfaCodeInvalid, // Invalid TFA code
     TfaAlreadyEnabled, // TFA is already enabled for the user
     TfaNotEnabled, // For cases where TFA is not enabled but required
-    // Consider UserNotFound for when an email address isn't found for password reset/resend
+    // Consider UserNotFound for when an email address isn't found for password reset/resend\
+    OpenAIError(String), // <-- Add this
+    FileUploadError(String), // For issues reading/processing uploaded files
+    InvalidMultipartData(String), // For malformed multipart requests
 }
 
 // How AppError should be converted into an HTTP response
@@ -110,6 +113,18 @@ impl IntoResponse for AppError {
             AppError::TfaNotEnabled => (StatusCode::BAD_REQUEST, "TFA is not enabled".to_string()), // Keep vague for security
             // Use existing errors for cases like UserNotFound, InvalidCredentials, ValidationFailed
             // e.g., trying to resend verification email to non-existent email -> UserNotFound (404)
+            AppError::OpenAIError(msg) => {
+                tracing::error!("OpenAI API error: {}", msg);
+                (StatusCode::INTERNAL_SERVER_ERROR, "Failed to communicate with AI service".to_string()) // Don't expose internal details
+           }
+            AppError::FileUploadError(msg) => {
+                tracing::warn!("File upload processing error: {}", msg);
+                (StatusCode::BAD_REQUEST, format!("File processing failed: {}", msg))
+           }
+            AppError::InvalidMultipartData(msg) => {
+                tracing::warn!("Invalid multipart data: {}", msg);
+                (StatusCode::BAD_REQUEST, format!("Invalid request data: {}", msg))
+           }
         };
 
         let body = Json(json!({ "error": error_message }));
@@ -153,5 +168,11 @@ impl From<bcrypt::BcryptError> for AppError {
 impl From<jsonwebtoken::errors::Error> for AppError {
     fn from(e: jsonwebtoken::errors::Error) -> Self {
         AppError::JwtError(e)
+    }
+}
+
+impl From<AsyncOpenAIError> for AppError {
+    fn from(e: AsyncOpenAIError) -> Self {
+        AppError::OpenAIError(e.to_string()) // Convert to string for storing in our error variant
     }
 }
