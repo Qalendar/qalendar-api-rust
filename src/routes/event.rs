@@ -27,7 +27,7 @@ pub fn events_routes(app_state: AppState) -> Router<AppState> {
         // Nest these under /api/me/events/:event_id/invitations
         // We can define a nested router specific to the event ID path segment
         .nest(
-            "/:event_id/invitations", // Path segment capturing event_id
+            "/{event_id}/invitations", // Path segment capturing event_id
             Router::new()
                // Routes under /api/me/events/:event_id/invitations
                .route("/",
@@ -35,7 +35,7 @@ pub fn events_routes(app_state: AppState) -> Router<AppState> {
                    .get(invitation_handler::list_invitations_for_event) // GET to list invites
                )
                 // Route for a specific invitation: /api/me/events/:event_id/invitations/:invitation_id
-               .route("/:invitation_id",
+               .route("/{invitation_id}",
                    delete(invitation_handler::revoke_invitation) // DELETE to revoke
                )
                 // The handlers for these nested routes also need AppState.

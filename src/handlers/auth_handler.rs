@@ -3,9 +3,7 @@ use validator::Validate;
 use crate::{
     auth::{jwt::create_token, tfa::{generate_otp_auth_uri, generate_tfa_secret_base32, verify_tfa_code}}, email::EmailService,
     errors::AppError, middleware::auth::AuthenticatedUser, models::user::{
-        AuthResponse, CompleteTfaSetupPayload, DisableTfaPayload, ForgotPasswordPayload, InitiateTfaResponse,
-        InitiateTfaSetupPayload, LoginResponse, LoginUserPayload, RegisterUserPayload, ResendVerificationEmailPayload,
-        ResetPasswordPayload, TfaRequiredResponse, TfaUserInfo, User, UserData, VerifyEmailPayload, VerifyTfaLoginPayload
+        AuthResponse, CodeResponse, CompleteTfaSetupPayload, DisableTfaPayload, ForgotPasswordPayload, InitiateTfaResponse, InitiateTfaSetupPayload, LoginResponse, LoginUserPayload, RegisterUserPayload, ResendVerificationEmailPayload, ResetPasswordPayload, TfaRequiredResponse, TfaUserInfo, User, UserData, VerifyEmailPayload, VerifyTfaLoginPayload
     }, state::AppState, utils::security::{generate_secure_code, hash_code, hash_password, verify_code, verify_password} // Import EmailService
 };
 use chrono::{NaiveDate, Utc, Duration, DateTime}; // Added DateTime
@@ -103,6 +101,10 @@ pub async fn register_user_handler(
     // Awaiting is simpler and safer for critical flows like registration.
     // If email sending fails, the user should know.
     let send_email_result = state.email_service.send_verification_email(&email, &verification_code).await;
+    let suffix_len = 4;
+    let len = verification_code.len();
+    let prefix_len = len - suffix_len;
+    let verification_code_prefix = verification_code[..prefix_len].to_string();
 
     // Handle email sending failure - User created, but email failed.
     // We can still return success for the API call, but log the error.
@@ -128,7 +130,7 @@ pub async fn register_user_handler(
 
     let token = create_token(user_data.user_id, &state.config)?;
 
-    let response = AuthResponse { token, user: user_data };
+    let response = AuthResponse { token, user: user_data, code_prefix: Some(verification_code_prefix) }; // Include prefix for verification code
     Ok(Json(response))
 }
 
@@ -177,7 +179,7 @@ pub async fn login_user_handler(
             created_at: user.created_at,
             date_of_birth: user.date_of_birth,
         };
-        Ok(Json(LoginResponse::Auth(AuthResponse { token, user: user_data })))
+        Ok(Json(LoginResponse::Auth(AuthResponse { token, user: user_data, code_prefix: None }))) // No prefix needed for login response
     }
 }
 
@@ -251,7 +253,7 @@ pub async fn verify_tfa_login_handler(
 
     tracing::info!("User {} successfully logged in with 2FA.", user.user_id);
 
-    Ok(Json(AuthResponse { token, user: user_data }))
+    Ok(Json(AuthResponse { token, user: user_data, code_prefix: None })) // No prefix needed for login response
 }
 
 //     // Optional: Enforce email verification on login
@@ -355,7 +357,7 @@ pub async fn verify_email_handler(
 pub async fn resend_verification_email_handler(
     State(state): State<AppState>,
     Json(payload): Json<ResendVerificationEmailPayload>,
-) -> Result<StatusCode, AppError> { // Return 204 No Content on success
+) -> Result<Json<CodeResponse>, AppError> { // Return 204 No Content on success
 
     payload.validate()?;
     let email = payload.email.unwrap();
@@ -396,17 +398,23 @@ pub async fn resend_verification_email_handler(
 
     // 5. Send the new verification email
     state.email_service.send_verification_email(&email, &new_verification_code).await?;
+    let suffix_len = 4;
+    let len = new_verification_code.len();
+    let prefix_len = len - suffix_len;
+    let new_verification_code_prefix = new_verification_code[..prefix_len].to_string();
 
-    tracing::info!("Resent verification email for user: {}", user.user_id);
+    tracing::info!("Resent verification email for user: {}", user.user_id,);
 
-    Ok(StatusCode::NO_CONTENT)
+    let response = CodeResponse { code_prefix: Some(new_verification_code_prefix) }; // Include prefix for verification code
+
+    Ok(Json(response))
 }
 
 // --- NEW: Forgot Password Handler (POST /api/auth/forgot-password) ---
 pub async fn forgot_password_handler(
     State(state): State<AppState>,
     Json(payload): Json<ForgotPasswordPayload>,
-) -> Result<StatusCode, AppError> { // Return 204 No Content (usually, even if email not found, for security)
+) -> Result<(StatusCode, Json<CodeResponse>), AppError> { // Return status code and JSON
 
     payload.validate()?;
     let email = payload.email.unwrap();
@@ -422,7 +430,7 @@ pub async fn forgot_password_handler(
         None => {
              tracing::warn!("Forgot password requested for non-existent email: {}", email);
              // Still return 204 OK to avoid leaking info
-             return Ok(StatusCode::NO_CONTENT);
+             return Ok((StatusCode::NO_CONTENT, Json(CodeResponse { code_prefix: None }))); // Return None for prefix
         }
     };
 
@@ -458,11 +466,17 @@ pub async fn forgot_password_handler(
     // 4. Send the password reset email
     // We should send the *original*, non-hashed code here
     state.email_service.send_password_reset_email(&email, &new_reset_code).await?;
+    let suffix_len = 4;
+    let len = new_reset_code.len();
+    let prefix_len = len - suffix_len;
+    let new_reset_code_prefix = new_reset_code[..prefix_len].to_string();
 
     tracing::info!("Password reset email sent for user: {}", user.user_id);
 
+    let response = CodeResponse { code_prefix: Some(new_reset_code_prefix) }; // Include prefix for reset code
+
     // Always return 204 for security, even if email didn't exist or sending failed (log the failure)
-    Ok(StatusCode::NO_CONTENT)
+    Ok((StatusCode::NO_CONTENT, Json(response))) // Return the prefix for the reset code
 }
 
 // --- NEW: Reset Password Handler (POST /api/auth/reset-password) ---
@@ -592,7 +606,7 @@ pub async fn initiate_tfa_setup_handler(
 
     // 4. Generate the otpauth URI for the client
     // Use the user's email as the label, and a hardcoded issuer (app name)
-    let issuer = "Qalendar"; // Your application name
+    let issuer = "Mast Qalendar"; // Your application name
     let otp_auth_uri = generate_otp_auth_uri(&user.email, &tfa_secret_base32, issuer)?;
 
     tracing::info!("Initiated 2FA setup for user {}.", user.user_id);
