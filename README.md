@@ -40,8 +40,8 @@ This method requires the Rust toolchain.
 2. **Clone Repository:**
 
     ```zsh
-    git clone <your-repository-url>
-    cd <your-repository-name>/qalendar-api
+    git clone https://github.com/Qalendar/qalendar-api-rust
+    cd Qalendar/qalendar-api-rust
     ```
 
 3. **Install `sqlx-cli` (Recommended for Migrations):**
