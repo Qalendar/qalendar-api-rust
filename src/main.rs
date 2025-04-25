@@ -8,6 +8,7 @@ use tower_http::{ // Import tower_http components
     cors::{Any, CorsLayer},
     trace::TraceLayer,
 };
+#[cfg(debug_assertions)]
 use dotenvy::dotenv;
 
 // Declare modules using the new style
@@ -41,8 +42,10 @@ async fn main() -> Result<(), AppError> { // Return our AppError
 
     tracing::info!("Starting Qalendar API Server...");
 
-    // Load configuration from .env file
+    // Load configuration from .env file in debug mode
+    #[cfg(debug_assertions)]
     dotenv().expect(".env file not found"); // Use dotenvy
+    
     let config = Arc::new(Config::from_env()?); // Use Arc for shared state
     tracing::info!("Configuration loaded successfully.");
 

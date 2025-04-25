@@ -13,7 +13,7 @@ pub fn ai_routes(app_state: AppState) -> Router<AppState> { // Explicitly type s
         // If adding directly under /api: Router::new().route("/ai/prompt", post(ai_handler::handle_ai_prompt))
         // If adding under /api/me: Router::new().route("/ai-assistant", post(ai_handler::handle_ai_prompt))
         // Let's follow the initial thought and add it under /api/me/ai-assistant
-        .route("/ai-assistant", post(ai_handler::handle_ai_prompt)) // Mounted under /me, becomes /api/me/ai-assistant
+        .route("/", post(ai_handler::handle_ai_prompt)) // Mounted under /me, becomes /api/me/ai-assistant
 
         // Make AppState available
         .with_state(app_state)
