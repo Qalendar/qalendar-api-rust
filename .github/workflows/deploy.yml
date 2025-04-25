@@ -1,0 +1,71 @@
+name: Build & Deploy Qalendar API Server to Elastic Beanstalk
+
+on:
+  push:
+    branches: [ "main" ]
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: ap-southeast-1
+  EB_APP_NAME: qalandar
+  EB_ENV_NAME: qalendar-prod-env
+  EB_S3_BUCKET: qalendar-eb-deployments-usable-owl
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout source
+      uses: actions/checkout@v4
+
+    - name: Install Rust toolchain + MUSL target
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        target: x86_64-unknown-linux-musl
+        override: true
+
+    - name: Install MUSL linker
+      run: sudo apt-get update && sudo apt-get -y install musl-tools
+
+    - name: Build release binary
+      run: cargo build --release --target x86_64-unknown-linux-musl
+
+    - name: Create Beanstalk bundle
+      run: |
+        mkdir bundle
+        cp target/x86_64-unknown-linux-musl/release/qalendar-api bundle/
+        chmod +x bundle/qalendar-api
+        # Procfile tells EB how to start the app
+        echo "web: ./qalendar-api" > bundle/Procfile
+        cd bundle
+        zip -r ../deploy.zip .
+        cd ..
+
+    - name: Configure AWS credentials (OIDC)
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+        aws-region: ${{ env.AWS_REGION }}
+
+    - name: Upload bundle to S3
+      run: aws s3 cp deploy.zip s3://${{ env.EB_S3_BUCKET }}/${{ github.sha }}.zip
+
+    - name: Register new EB application version
+      run: |
+        aws elasticbeanstalk create-application-version \
+          --application-name ${{ env.EB_APP_NAME }} \
+          --version-label "${{ github.sha }}-${{ github.run_number }}" \
+          --source-bundle S3Bucket="${{ env.EB_S3_BUCKET }}",S3Key="${{ github.sha }}.zip" \
+          --region ${{ env.AWS_REGION }}
+
+    - name: Deploy to EB environment
+      run: |
+        aws elasticbeanstalk update-environment \
+          --environment-name ${{ env.EB_ENV_NAME }} \
+          --version-label "${{ github.sha }}-${{ github.run_number }}" \
+          --region ${{ env.AWS_REGION }}
