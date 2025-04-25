@@ -1,0 +1,106 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT user_id, display_name, email,\n               email_verified as \"email_verified!\",\n               password_hash, date_of_birth as \"date_of_birth!: _\",\n               created_at as \"created_at!\",\n               updated_at as \"updated_at!\",\n               deleted_at as \"deleted_at!: _\",\n               tfa_enabled, tfa_secret,\n               verification_code, verification_code_expires_at as \"verification_code_expires_at!\",\n               reset_code, reset_code_expires_at as \"reset_code_expires_at!\"\n        FROM users WHERE email = $1\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "user_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "display_name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "email",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "email_verified!",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 4,
+        "name": "password_hash",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "date_of_birth!: _",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 6,
+        "name": "created_at!",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 7,
+        "name": "updated_at!",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 8,
+        "name": "deleted_at!: _",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 9,
+        "name": "tfa_enabled",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 10,
+        "name": "tfa_secret",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 11,
+        "name": "verification_code",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 12,
+        "name": "verification_code_expires_at!",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 13,
+        "name": "reset_code",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 14,
+        "name": "reset_code_expires_at!",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      false,
+      true,
+      true,
+      true,
+      true,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "058595681ced1eba1904d25f8edd3622ae040140fc26b1ec19613f9a8845882d"
+}

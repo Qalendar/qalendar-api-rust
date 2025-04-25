@@ -35,6 +35,9 @@ pub enum AppError {
     ResetCodeInvalid, // Includes cases where code is missing, incorrect, or user email doesn't match code
     ResetCodeExpired,
     EmailSendingError(String), // Error specifically from the email service
+    TfaCodeInvalid, // Invalid TFA code
+    TfaAlreadyEnabled, // TFA is already enabled for the user
+    TfaNotEnabled, // For cases where TFA is not enabled but required
     // Consider UserNotFound for when an email address isn't found for password reset/resend
 }
 
@@ -102,6 +105,9 @@ impl IntoResponse for AppError {
                  tracing::error!("Email sending failed: {}", msg);
                  (StatusCode::INTERNAL_SERVER_ERROR, "Failed to send email".to_string()) // Don't expose internal error message
             }
+            AppError::TfaCodeInvalid => (StatusCode::BAD_REQUEST, "Invalid TFA code".to_string()), // Keep vague for security
+            AppError::TfaAlreadyEnabled => (StatusCode::BAD_REQUEST, "TFA is already enabled".to_string()), // Keep vague for security
+            AppError::TfaNotEnabled => (StatusCode::BAD_REQUEST, "TFA is not enabled".to_string()), // Keep vague for security
             // Use existing errors for cases like UserNotFound, InvalidCredentials, ValidationFailed
             // e.g., trying to resend verification email to non-existent email -> UserNotFound (404)
         };

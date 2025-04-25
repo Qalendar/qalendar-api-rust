@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        UPDATE users\n        SET tfa_enabled = FALSE, tfa_secret = NULL, -- Clear the secret\n            updated_at = NOW() -- Explicitly update updated_at\n        WHERE user_id = $1\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "11fd49b8738e7d4197b11290db1d80aca5768348b9d697cbb6d8a50a1bec97c7"
+}

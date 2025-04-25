@@ -1,16 +1,12 @@
-// src/handlers/auth_handler.rs
 use axum::{extract::{State, Json}, http::StatusCode}; // Added StatusCode
 use validator::Validate;
 use crate::{
-    errors::AppError,
-    models::user::{
-        RegisterUserPayload, LoginUserPayload, AuthResponse, UserData, User,
-        VerifyEmailPayload, ResendVerificationEmailPayload, ForgotPasswordPayload, ResetPasswordPayload, // Import new payloads
-    },
-    utils::security::{hash_password, verify_password, generate_secure_code, hash_code, verify_code}, // Import code helpers
-    auth::jwt::create_token,
-    state::AppState,
-    email::EmailService, // Import EmailService
+    auth::{jwt::create_token, tfa::{generate_otp_auth_uri, generate_tfa_secret_base32, verify_tfa_code}}, email::EmailService,
+    errors::AppError, middleware::auth::AuthenticatedUser, models::user::{
+        AuthResponse, CompleteTfaSetupPayload, DisableTfaPayload, ForgotPasswordPayload, InitiateTfaResponse,
+        InitiateTfaSetupPayload, LoginResponse, LoginUserPayload, RegisterUserPayload, ResendVerificationEmailPayload,
+        ResetPasswordPayload, TfaRequiredResponse, TfaUserInfo, User, UserData, VerifyEmailPayload, VerifyTfaLoginPayload
+    }, state::AppState, utils::security::{generate_secure_code, hash_code, hash_password, verify_code, verify_password} // Import EmailService
 };
 use chrono::{NaiveDate, Utc, Duration, DateTime}; // Added DateTime
 use sqlx::PgPool; // For type hints
@@ -24,13 +20,15 @@ async fn find_user_by_email(pool: &PgPool, email: &str) -> Result<Option<User>, 
     sqlx::query_as!(
         User,
         r#"
-        SELECT user_id, display_name, email, password_hash, date_of_birth,
+        SELECT user_id, display_name, email,
                email_verified as "email_verified!",
-               verification_code, verification_code_expires_at,
-               reset_code, reset_code_expires_at,
+               password_hash, date_of_birth as "date_of_birth!: _",
                created_at as "created_at!",
                updated_at as "updated_at!",
-               deleted_at as "deleted_at!: _"
+               deleted_at as "deleted_at!: _",
+               tfa_enabled, tfa_secret,
+               verification_code, verification_code_expires_at as "verification_code_expires_at!",
+               reset_code, reset_code_expires_at as "reset_code_expires_at!"
         FROM users WHERE email = $1
         "#,
         email
@@ -138,7 +136,7 @@ pub async fn register_user_handler(
 pub async fn login_user_handler(
     State(state): State<AppState>,
     Json(payload): Json<LoginUserPayload>,
-) -> Result<Json<AuthResponse>, AppError> {
+) -> Result<Json<LoginResponse>, AppError> {
     payload.validate()?;
     let email = payload.email.unwrap();
     let password = payload.password.unwrap();
@@ -159,16 +157,90 @@ pub async fn login_user_handler(
         return Err(AppError::InvalidCredentials);
     }
 
-    // Optional: Enforce email verification on login
-    // if !user.email_verified {
-    //     tracing::warn!("Login attempt by unverified email: {}", user.email);
-    //     return Err(AppError::UserNotVerified); // Return specific error if verification is mandatory for login
-    // }
+    // --- 2FA Check ---
+    if user.tfa_enabled {
+        tracing::info!("2FA required for user {}. Prompting for code.", user.user_id);
+        // Password is correct, but 2FA is enabled. Return response indicating 2FA is needed.
+        Ok(Json(LoginResponse::TfaRequired(TfaRequiredResponse {
+            user_id: user.user_id,
+            // Add other necessary info, but keep minimal
+        })))
+    } else {
+        // Authentication successful, 2FA not enabled. Issue JWT.
+        let token = create_token(user.user_id, &state.config)?;
+
+        let user_data = UserData {
+            user_id: user.user_id,
+            display_name: user.display_name,
+            email: user.email,
+            email_verified: user.email_verified,
+            created_at: user.created_at,
+            date_of_birth: user.date_of_birth,
+        };
+        Ok(Json(LoginResponse::Auth(AuthResponse { token, user: user_data })))
+    }
+}
+
+// --- NEW: Verify 2FA Code for Login Handler (POST /api/auth/verify-tfa) ---
+// Called after successful password login if 2FA is required
+pub async fn verify_tfa_login_handler(
+    State(state): State<AppState>,
+    Json(payload): Json<VerifyTfaLoginPayload>,
+) -> Result<Json<AuthResponse>, AppError> { // Return regular AuthResponse on success
+    payload.validate()?;
+    let user_id = payload.user_id.unwrap();
+    let tfa_code = payload.tfa_code.unwrap();
+
+    // 1. Find user by user_id (need tfa_enabled and tfa_secret)
+    // Fetch using user_id instead of email here, as we have the ID from the TfaRequiredResponse
+    let user = sqlx::query_as!(
+        User,
+        r#"
+        SELECT user_id, display_name, email, password_hash, date_of_birth,
+               email_verified as "email_verified!",
+               verification_code, verification_code_expires_at,
+               reset_code, reset_code_expires_at,
+               created_at as "created_at!",
+               updated_at as "updated_at!",
+               deleted_at as "deleted_at!: _",
+               tfa_enabled as "tfa_enabled!",
+               tfa_secret
+        FROM users WHERE user_id = $1
+        "#,
+        user_id
+    )
+    .fetch_optional(&state.pool)
+    .await?
+    .ok_or(AppError::InvalidCredentials)?; // Use generic invalid credentials
 
 
+    // 2. Check if 2FA is actually enabled for this user (redundant check but safe)
+    if !user.tfa_enabled {
+        tracing::warn!("2FA verification attempted for user {} where 2FA is not enabled.", user.user_id);
+        return Err(AppError::InvalidCredentials); // Or a more specific error if desired
+    }
+
+    // 3. Get the stored secret
+    let tfa_secret_base32 = match user.tfa_secret {
+        Some(secret) => secret,
+        None => {
+            tracing::error!("User {} has TFA enabled but no secret stored!", user.user_id);
+            return Err(AppError::InternalServerError("2FA configuration missing".to_string())); // Data inconsistency
+        }
+    };
+
+    // 4. Verify the provided 2FA code
+    let code_is_valid = verify_tfa_code(&tfa_secret_base32, &tfa_code)?;
+
+    if !code_is_valid {
+        tracing::warn!("Invalid 2FA code attempt for user {}", user.user_id);
+        return Err(AppError::TfaCodeInvalid); // Specific error for invalid code
+    }
+
+    // 5. Authentication successful (both factors verified). Issue JWT.
     let token = create_token(user.user_id, &state.config)?;
 
-    let user_data = UserData {
+     let user_data = UserData {
         user_id: user.user_id,
         display_name: user.display_name,
         email: user.email,
@@ -176,9 +248,32 @@ pub async fn login_user_handler(
         created_at: user.created_at,
         date_of_birth: user.date_of_birth,
     };
-    let response = AuthResponse { token, user: user_data };
-    Ok(Json(response))
+
+    tracing::info!("User {} successfully logged in with 2FA.", user.user_id);
+
+    Ok(Json(AuthResponse { token, user: user_data }))
 }
+
+//     // Optional: Enforce email verification on login
+//     // if !user.email_verified {
+//     //     tracing::warn!("Login attempt by unverified email: {}", user.email);
+//     //     return Err(AppError::UserNotVerified); // Return specific error if verification is mandatory for login
+//     // }
+
+
+//     let token = create_token(user.user_id, &state.config)?;
+
+//     let user_data = UserData {
+//         user_id: user.user_id,
+//         display_name: user.display_name,
+//         email: user.email,
+//         email_verified: user.email_verified,
+//         created_at: user.created_at,
+//         date_of_birth: user.date_of_birth,
+//     };
+//     let response = AuthResponse { token, user: user_data };
+//     Ok(Json(response))
+// }
 
 
 // --- NEW: Verify Email Handler (POST /api/auth/verify-email) ---
@@ -206,7 +301,7 @@ pub async fn verify_email_handler(
 
     // 3. Check if verification code and expiry exist
     let stored_code_hash = match user.verification_code {
-        Some(hash) => hash,
+        Some(hash) => hash.to_string(),  // Convert &str to owned String
         None => {
             tracing::warn!("Verification attempt with no code stored for user: {}", user.user_id);
              return Err(AppError::VerificationCodeInvalid); // No code was ever generated or already used
@@ -394,7 +489,7 @@ pub async fn reset_password_handler(
 
     // 2. Check if reset code and expiry exist
     let stored_code_hash = match user.reset_code {
-        Some(hash) => hash,
+        Some(hash) => hash.to_string(),  // Convert &str to owned String
         None => {
             tracing::warn!("Password reset attempt with no code stored for user: {}", user.user_id);
              return Err(AppError::ResetCodeInvalid); // No code was ever generated or already used
@@ -446,4 +541,188 @@ pub async fn reset_password_handler(
     tracing::info!("Password reset successful for user: {}", user.user_id);
 
     Ok(StatusCode::NO_CONTENT) // 204 No Content indicates success
+}
+
+// --- NEW: Initiate 2FA Setup Handler (POST /api/me/tfa/setup/initiate) ---
+pub async fn initiate_tfa_setup_handler(
+    State(state): State<AppState>,
+    AuthenticatedUser { user_id }: AuthenticatedUser, // Must be authenticated
+    Json(_payload): Json<InitiateTfaSetupPayload>, // Payload may contain password for re-auth
+) -> Result<Json<InitiateTfaResponse>, AppError> {
+
+    // 1. Fetch user to get email and check if 2FA is already enabled
+    let user = sqlx::query_as!(
+        User,
+         r#"SELECT user_id, display_name, email, password_hash, date_of_birth,
+               email_verified as "email_verified!",
+               verification_code, verification_code_expires_at,
+               reset_code, reset_code_expires_at,
+               created_at as "created_at!",
+               updated_at as "updated_at!",
+               deleted_at as "deleted_at!: _",
+               tfa_enabled as "tfa_enabled!",
+               tfa_secret
+        FROM users WHERE user_id = $1 AND deleted_at IS NULL"#,
+        user_id
+    )
+    .fetch_optional(&state.pool)
+    .await?
+    .ok_or(AppError::UserNotFound)?; // Should not happen for authenticated user, but safety
+
+    if user.tfa_enabled {
+        return Err(AppError::TfaAlreadyEnabled);
+    }
+
+    // 2. Generate a new temporary secret
+    let tfa_secret_base32 = generate_tfa_secret_base32();
+
+    // 3. Store the temporary secret in the user record (tfa_secret field)
+    // It will be validated and used to enable 2FA in the 'complete' step.
+    sqlx::query!(
+        r#"
+        UPDATE users
+        SET tfa_secret = $1, updated_at = NOW()
+        WHERE user_id = $2
+        "#,
+        &tfa_secret_base32, // Store the base32 string
+        user_id
+    )
+    .execute(&state.pool)
+    .await?;
+
+    // 4. Generate the otpauth URI for the client
+    // Use the user's email as the label, and a hardcoded issuer (app name)
+    let issuer = "Qalendar"; // Your application name
+    let otp_auth_uri = generate_otp_auth_uri(&user.email, &tfa_secret_base32, issuer)?;
+
+    tracing::info!("Initiated 2FA setup for user {}.", user.user_id);
+
+    // 5. Return the secret and URI to the client
+    Ok(Json(InitiateTfaResponse {
+        tfa_secret_base32,
+        otp_auth_uri,
+    }))
+}
+
+// --- NEW: Complete 2FA Setup Handler (POST /api/me/tfa/setup/complete) ---
+pub async fn complete_tfa_setup_handler(
+    State(state): State<AppState>,
+    AuthenticatedUser { user_id }: AuthenticatedUser, // Must be authenticated
+    Json(payload): Json<CompleteTfaSetupPayload>,
+) -> Result<StatusCode, AppError> { // Return 204 No Content on success
+    payload.validate()?;
+    let tfa_code = payload.tfa_code.unwrap();
+
+    // 1. Fetch user to get the temporary secret and check status
+    let user = sqlx::query_as!(
+        TfaUserInfo,
+        r#"SELECT
+            user_id, password_hash, tfa_enabled as "tfa_enabled!", tfa_secret, deleted_at as "deleted_at!: _"
+        FROM users WHERE user_id = $1 AND deleted_at IS NULL"#,
+        user_id
+    )
+    .fetch_optional(&state.pool)
+    .await?
+    .ok_or(AppError::UserNotFound)?;
+
+    if user.tfa_enabled {
+        return Err(AppError::TfaAlreadyEnabled);
+    }
+
+    let tfa_secret_base32 = match user.tfa_secret {
+        Some(secret) => secret,
+        None => {
+             tracing::warn!("Complete 2FA setup attempt for user {} with no temporary secret.", user.user_id);
+             // User initiated setup but didn't complete it or secret was cleared
+             return Err(AppError::TfaNotEnabled); // Indicate setup wasn't initiated or is invalid
+        }
+    };
+
+    // 2. Verify the provided 2FA code against the temporary secret
+    let code_is_valid = verify_tfa_code(&tfa_secret_base32, &tfa_code)?;
+
+    if !code_is_valid {
+        tracing::warn!("Invalid 2FA code during setup completion for user {}", user.user_id);
+        // Optional: Clear the temporary secret here to force re-initiation on failure
+        // let _ = sqlx::query!("UPDATE users SET tfa_secret = NULL WHERE user_id = $1", user_id)
+        //     .execute(&state.pool).await;
+        return Err(AppError::TfaCodeInvalid); // Specific error for invalid code
+    }
+
+    // 3. Mark 2FA as enabled and clear the temporary secret (it's now the permanent one)
+    sqlx::query!(
+        r#"
+        UPDATE users
+        SET tfa_enabled = TRUE, -- Keep the secret, just enable the flag
+            -- tfa_secret = NULL, -- Alternative: Clear secret here if you store it encrypted elsewhere
+            updated_at = NOW() -- Explicitly update updated_at
+        WHERE user_id = $1
+        "#,
+        user_id
+    )
+    .execute(&state.pool)
+    .await?;
+
+    tracing::info!("2FA successfully enabled for user {}.", user.user_id);
+
+    // Optional: Generate and return recovery codes here if implementing them
+
+    Ok(StatusCode::NO_CONTENT)
+}
+
+// --- NEW: Disable 2FA Handler (POST /api/me/tfa/disable) ---
+pub async fn disable_tfa_handler(
+    State(state): State<AppState>,
+    AuthenticatedUser { user_id }: AuthenticatedUser, // Must be authenticated
+    Json(payload): Json<DisableTfaPayload>,
+) -> Result<StatusCode, AppError> { // Return 204 No Content on success
+    payload.validate()?;
+    let password = payload.password.unwrap();
+
+    // 1. Fetch user to check password, 2FA status, and get secret
+    let user = sqlx::query_as!(
+        TfaUserInfo,
+        r#"SELECT
+            user_id, password_hash,
+            tfa_enabled as "tfa_enabled!", tfa_secret, deleted_at as "deleted_at!: _"
+        FROM users WHERE user_id = $1 AND deleted_at IS NULL
+            "#,
+        user_id
+    )
+    .fetch_optional(&state.pool)
+    .await?
+    .ok_or(AppError::UserNotFound)?; // Should not happen
+
+    // 2. Check if 2FA is enabled
+    if !user.tfa_enabled {
+        return Err(AppError::TfaNotEnabled);
+    }
+
+    // 3. Verify user's password for confirmation
+    let is_valid_password = verify_password(&password, &user.password_hash).await?;
+    if !is_valid_password {
+        // Use InvalidCredentials or a more specific error like AppError::PasswordMismatch
+        return Err(AppError::InvalidCredentials);
+    }
+
+    // Optional: If you required current 2FA code, verify it here too
+
+    // 4. Disable 2FA and clear the secret (it's no longer needed or valid)
+    sqlx::query!(
+        r#"
+        UPDATE users
+        SET tfa_enabled = FALSE, tfa_secret = NULL, -- Clear the secret
+            updated_at = NOW() -- Explicitly update updated_at
+        WHERE user_id = $1
+        "#,
+        user_id
+    )
+    .execute(&state.pool)
+    .await?;
+
+    tracing::info!("2FA successfully disabled for user {}.", user.user_id);
+
+    // Optional: Invalidate any recovery codes here
+
+    Ok(StatusCode::NO_CONTENT)
 }

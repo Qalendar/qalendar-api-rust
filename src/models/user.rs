@@ -77,6 +77,75 @@ pub struct BasicUserInfo {
     pub deleted_at: Option<DateTime<Utc>>,
 }
 
+// #[derive(FromRow, Debug, Serialize)]
+// #[serde(rename_all = "camelCase")]
+// pub struct UserInfo {
+//     pub user_id: i32,
+//     pub display_name: String,
+//     pub email: String,
+//     pub email_verified: bool,
+//     pub password_hash: String,
+//     pub date_of_birth: Option<NaiveDate>,
+//     pub created_at: DateTime<Utc>,
+//     pub updated_at: DateTime<Utc>,
+//     pub deleted_at: Option<DateTime<Utc>>,
+//     pub tfa_enabled: bool,
+//     pub verification_code: Option<String>,
+// }
+
+#[derive(FromRow, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TfaUserInfo {
+    pub user_id: i32,
+    pub password_hash: String,
+    pub tfa_enabled: bool,
+    pub tfa_secret: Option<String>,
+    pub deleted_at: Option<DateTime<Utc>>,
+}
+
+// --- New Payloads for 2FA Flow ---
+
+// Payload for initiating 2FA setup (no body needed)
+#[derive(Deserialize, Validate, Debug)]
+pub struct InitiateTfaSetupPayload {
+    #[validate(required)]
+    pub password: Option<String>, // Require password to initiate 2FA setup
+}
+
+// Payload for completing 2FA setup
+#[derive(Deserialize, Validate, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct CompleteTfaSetupPayload {
+    #[validate(required)]
+    pub tfa_code: Option<String>, // Code from authenticator app
+    // Include the secret returned by initiate, or re-generate it server-side based on user state?
+    // Sending it back is simpler for the client flow, but less secure.
+    // Let's assume the server stores the temporary secret in the user's record upon initiate.
+    // So only the code is needed here.
+    // pub tfa_secret: Option<String>, // The temporary secret from initiate
+}
+
+// Payload for disabling 2FA
+#[derive(Deserialize, Validate, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct DisableTfaPayload {
+    #[validate(required)]
+    pub password: Option<String>, // Require password to disable 2FA
+    // Optional: require current 2FA code too?
+    #[validate(required)]
+    pub tfa_code: Option<String>,
+}
+
+// Payload for verifying 2FA code during login (Implicit Two-Step)
+#[derive(Deserialize, Validate, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct VerifyTfaLoginPayload {
+    #[validate(required)]
+    pub user_id: Option<i32>, // Identify the user who passed step 1 login
+    #[validate(required)]
+    pub tfa_code: Option<String>, // The TOTP code
+}
+
 // --- API Responses ---
 
 #[derive(Serialize, Debug)]
@@ -102,6 +171,33 @@ pub struct AuthResponse {
     pub user: UserData,
 }
 
+// New Response type for login when 2FA is required
+#[derive(Serialize, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct TfaRequiredResponse {
+    pub user_id: i32, // Client needs this to call the verify-tfa endpoint
+    // Add other user details client might need *before* full authentication?
+    // e.g., display_name, email - BE CAREFUL not to send sensitive data
+    // For security, maybe only send userId and a flag.
+}
+
+// Unified Login Response Enum
+#[derive(Serialize, Debug)]
+#[serde(untagged)] // Axum/serde will try each variant until one matches
+pub enum LoginResponse {
+    Auth(AuthResponse),             // Successful login, no 2FA or 2FA verified
+    TfaRequired(TfaRequiredResponse), // 2FA is required after password step
+}
+
+// --- Response struct for Initiate TFA Setup ---
+// Needs to include the secret (base32 encoded) and the OTP URI
+#[derive(Serialize, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct InitiateTfaResponse {
+    pub tfa_secret_base32: String,
+    pub otp_auth_uri: String, // The otpauth:// URI string
+    // Frontend uses these to generate QR code and show the secret text
+}
 
 // --- Database Model ---
 
@@ -122,4 +218,6 @@ pub struct User {
     pub created_at: DateTime<Utc>, // Matches TIMESTAMP WITH TIME ZONE
     pub updated_at: DateTime<Utc>,
     pub deleted_at: Option<DateTime<Utc>>,
+    pub tfa_enabled: bool,
+    pub tfa_secret: Option<String>,
 }

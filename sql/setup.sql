@@ -39,7 +39,9 @@ CREATE TABLE users (
     reset_code_expires_at TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    deleted_at TIMESTAMP WITH TIME ZONE NULL
+    deleted_at TIMESTAMP WITH TIME ZONE NULL,
+    tfa_enabled BOOLEAN NOT NULL DEFAULT FALSE,
+    tfa_secret TEXT NULL
 );
 DROP TRIGGER IF EXISTS set_timestamp_users ON users;
 CREATE TRIGGER set_timestamp_users BEFORE UPDATE ON users FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp();
@@ -234,3 +236,6 @@ CREATE INDEX IF NOT EXISTS idx_calendar_shares_owner ON calendar_shares(owner_us
 CREATE INDEX IF NOT EXISTS idx_calendar_shares_shared_with ON calendar_shares(shared_with_user_id);
 CREATE INDEX IF NOT EXISTS idx_calendar_share_categories_share_id ON calendar_share_categories(share_id);
 CREATE INDEX IF NOT EXISTS idx_calendar_share_categories_category_id ON calendar_share_categories(category_id);
+
+-- Indexes for 2FA
+CREATE INDEX IF NOT EXISTS idx_users_tfa_enabled ON users(tfa_enabled);

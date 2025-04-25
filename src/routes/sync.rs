@@ -19,7 +19,7 @@ pub fn sync_routes(app_state: AppState) -> Router { // Explicitly type state
             "/calendar/shares/:share_id", // New path
             get(sync_handler::sync_shared_calendar_data)
         )
-        // Route: POST /api/sync (Process client changes - implement later)
+        // Route: POST /api/sync (Process client changes - implement later) MAYBE
         // .route(
         //     "/",
         //     post(sync_handler::process_client_sync)

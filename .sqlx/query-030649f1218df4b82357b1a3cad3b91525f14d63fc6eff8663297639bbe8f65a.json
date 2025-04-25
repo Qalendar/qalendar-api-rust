@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n        SELECT user_id, display_name, email, password_hash, date_of_birth,\n               email_verified as \"email_verified!\",\n               verification_code, verification_code_expires_at,\n               reset_code, reset_code_expires_at,\n               created_at as \"created_at!\",\n               updated_at as \"updated_at!\",\n               deleted_at as \"deleted_at!: _\"\n        FROM users WHERE email = $1\n        ",
+  "query": "SELECT user_id, display_name, email, password_hash, date_of_birth,\n               email_verified as \"email_verified!\",\n               verification_code, verification_code_expires_at,\n               reset_code, reset_code_expires_at,\n               created_at as \"created_at!\",\n               updated_at as \"updated_at!\",\n               deleted_at as \"deleted_at!: _\",\n               tfa_enabled as \"tfa_enabled!\",\n               tfa_secret\n        FROM users WHERE user_id = $1 AND deleted_at IS NULL",
   "describe": {
     "columns": [
       {
@@ -67,11 +67,21 @@
         "ordinal": 12,
         "name": "deleted_at!: _",
         "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 13,
+        "name": "tfa_enabled!",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 14,
+        "name": "tfa_secret",
+        "type_info": "Text"
       }
     ],
     "parameters": {
       "Left": [
-        "Text"
+        "Int4"
       ]
     },
     "nullable": [
@@ -87,8 +97,10 @@
       true,
       true,
       true,
+      true,
+      false,
       true
     ]
   },
-  "hash": "a4dd1a9b5070f8d45b3dc46de9b19c6194cd2e5aae833682c24df66af12eedc5"
+  "hash": "030649f1218df4b82357b1a3cad3b91525f14d63fc6eff8663297639bbe8f65a"
 }
