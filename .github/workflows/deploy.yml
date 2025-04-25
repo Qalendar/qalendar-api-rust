@@ -23,6 +23,9 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
 
+      - name: Clean workspace (optional)
+        run: git clean -fdx
+
       - name: Zip app for Elastic Beanstalk
         run: |
           zip -r deploy.zip . -x "target/*" ".git/*" "deploy.zip"
