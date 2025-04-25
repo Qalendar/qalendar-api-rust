@@ -53,5 +53,5 @@ jobs:
         run: |
           aws elasticbeanstalk update-environment \
             --environment-name ${{ env.EB_ENV_NAME }} \
-            --version-label "${{ github.sha }}-${{ github.run_number }}" \
+            --version-label "$VERSION_LABEL" \
             --region ${{ env.AWS_REGION }}
