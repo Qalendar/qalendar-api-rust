@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        UPDATE users\n        SET tfa_enabled = TRUE, -- Keep the secret, just enable the flag\n            -- tfa_secret = NULL, -- Alternative: Clear secret here if you store it encrypted elsewhere\n            updated_at = NOW() -- Explicitly update updated_at\n        WHERE user_id = $1\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "f955292924585d198da5add6014ccf3201ce589c844ffbb2e1fd67fbaf55f2e8"
+}

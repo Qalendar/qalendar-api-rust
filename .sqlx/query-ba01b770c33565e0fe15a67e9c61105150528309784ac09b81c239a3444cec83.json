@@ -1,0 +1,46 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n            user_id, password_hash, tfa_enabled as \"tfa_enabled!\", tfa_secret, deleted_at as \"deleted_at!: _\"\n        FROM users WHERE user_id = $1 AND deleted_at IS NULL",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "user_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "password_hash",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "tfa_enabled!",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 3,
+        "name": "tfa_secret",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "deleted_at!: _",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "ba01b770c33565e0fe15a67e9c61105150528309784ac09b81c239a3444cec83"
+}
