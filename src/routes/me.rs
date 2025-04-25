@@ -55,7 +55,7 @@ pub fn me_routes(app_state: AppState) -> Router {
        // --- NEW 2FA Routes (Protected under /me/tfa) ---
        .nest("/tfa", tfa_router) // /api/me/tfa
         // --- NEW AI Assistant Route ---
-       .nest("/", ai_router) // Nest the AI router here. Its route is "/ai-assistant",
+       .nest("/ai-assistant", ai_router) // Nest the AI router here. Its route is "/ai-assistant",
         // so combined path is /me/ai-assistant
        .with_state(app_state)
 }
