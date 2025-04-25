@@ -29,8 +29,11 @@ jobs:
         target: x86_64-unknown-linux-musl
         override: true
 
-    - name: Install MUSL linker
-      run: sudo apt-get update && sudo apt-get -y install musl-tools
+    - name: Install MUSL linker and build essentials for vendored OpenSSL
+      run: |
+        sudo apt-get update
+        # musl-gcc for static build, plus tools openssl-src expects
+        sudo apt-get -y install musl-tools pkg-config perl make
 
     - name: Build release binary
       run: cargo build --release --target x86_64-unknown-linux-musl

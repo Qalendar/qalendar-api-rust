@@ -37,3 +37,4 @@ urlencoding = "2.1.3"
 webpki-roots = "0.26.8"
 totp-rs = { version = "5.7.0", features = ["gen_secret", "otpauth"] }
 base32 = "0.5.1"
+openssl = { version = "0.10.72", features = ["vendored"] }
