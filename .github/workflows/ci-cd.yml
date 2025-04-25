@@ -81,6 +81,9 @@ jobs:
       - name: Upload bundle to S3
         run: aws s3 cp deploy.zip s3://${{ env.EB_S3_BUCKET }}/${{ github.sha }}.zip
 
+      - name: Debug EB_APP_NAME
+        run: echo "EB_APP_NAME is ${{ env.EB_APP_NAME }}"
+
       - name: Register new EB application version
         run: |
           aws elasticbeanstalk create-application-version \
