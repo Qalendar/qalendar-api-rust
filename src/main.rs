@@ -1,6 +1,8 @@
+use ai::OpenAIClient;
 use axum::Router;
 use std::{net::SocketAddr, sync::Arc};
 use tokio;
+use axum_server;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter, fmt};
 use tower_http::{ // Import tower_http components
     cors::{Any, CorsLayer},
@@ -20,6 +22,7 @@ mod auth; // Declares jwt module inside
 mod utils; // Declares security module inside
 mod middleware; // Declares auth module inside
 mod email; // Declares email module inside
+mod ai; // Declares ai module inside
 
 use config::Config; // Use the Config struct
 use errors::AppError; // Use our custom error type
@@ -51,11 +54,15 @@ async fn main() -> Result<(), AppError> { // Return our AppError
     let email_service = EmailService::new(config.clone())?; // Pass clone of Arc<Config>
     tracing::info!("Email service initialized.");
 
+    let openai_client = OpenAIClient::new(&config); // Client takes Arc<Config> ref
+    tracing::info!("OpenAI client initialized.");
+
     // Create the application state - this is the single source of truth for state
     let app_state = AppState {
         pool: pool.clone(), // Clone the pool for the state
         config: config.clone(), // Clone the Arc<Config>
         email_service,
+        openai_client
     };
 
     // Configure CORS

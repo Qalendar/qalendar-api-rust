@@ -22,6 +22,11 @@ pub struct Config {
 
     // Frontend Configuration
     pub frontend_url: String,
+
+    // AI Configuration
+    pub openai_api_key: String,
+
+    pub openai_system_prompt: String, // System prompt for OpenAI API
 }
 
 impl Config {
@@ -73,6 +78,14 @@ impl Config {
         let frontend_url = env::var("FRONTEND_URL")
             .map_err(|e| AppError::ConfigurationError(format!("Missing FRONTEND_URL: {}", e)))?;
 
+        // --- Load OpenAI API Key ---
+        let openai_api_key = env::var("OPENAI_API_KEY")
+            .map_err(|e| AppError::ConfigurationError(format!("Missing OPENAI_API_KEY: {}", e)))?;
+
+        // --- Load OpenAI System Prompt ---
+        let openai_system_prompt = env::var("OPENAI_SYSTEM_PROMPT")
+            .unwrap_or_else(|_| "You are a helpful assistant.".to_string()); // Default system prompt
+
         Ok(Self {
             database_url,
             jwt_secret,
@@ -87,6 +100,8 @@ impl Config {
             verification_code_expires_minutes,
             reset_code_expires_minutes,
             frontend_url,
+            openai_api_key,
+            openai_system_prompt,
         })
     }
 }

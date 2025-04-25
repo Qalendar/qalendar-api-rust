@@ -13,6 +13,7 @@ pub mod shared_calendar; // Declare the shared_calendar submodule
 pub mod calendar; // Declare the calendar submodule
 pub mod sync; // Declare the sync submodule
 pub mod tfa; // Declare the tfa submodule
+pub mod ai; // Declare the ai submodule
 
 // Function to create the main API router, combining all sub-routers
 pub fn create_api_router(app_state: AppState) -> Router {
