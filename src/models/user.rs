@@ -169,6 +169,13 @@ pub struct UserData {
 pub struct AuthResponse {
     pub token: String,
     pub user: UserData,
+    pub code_prefix: Option<String>, // Optional prefix for the verificatiion and reset codes
+}
+
+// Separate response for sending prefix of verification and reset codes
+#[derive(Serialize, Debug)]
+pub struct CodeResponse {
+    pub code_prefix: Option<String>, // The prefix part of the verification/reset code
 }
 
 // New Response type for login when 2FA is required

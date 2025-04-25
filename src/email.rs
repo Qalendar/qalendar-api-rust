@@ -5,6 +5,7 @@ use lettre::{
 };
 use crate::config::Config;
 use crate::errors::AppError; // Use AppError for email sending errors
+use crate::utils::security::split_code;
 use std::sync::Arc; // For Arc<Config>
 use rustls::ClientConfig as RustlsClientConfig;
 use urlencoding; // For URL encoding
@@ -61,11 +62,16 @@ impl EmailService {
             urlencoding::encode(verification_code) // URL-encode code
         );
 
+        // --- Get the last 4 digits ---
+        let (_, last_4_digits) = split_code(verification_code)?; // Use split_code helper
+
         let email_body = format!(
-            "Hi,\n\nPlease click the following link to verify your email address for Qalendar: \n{}\n\nThis link expires in {} minutes.\n\nIf you did not sign up for Qalendar, please ignore this email.",
+            "Hi,\n\nPlease click the following link to verify your email address for Qalendar: \n{}\n\nAlternatively, you can enter the following code in the verification screen.\n\n**{}**\n\nThis link expires in {} minutes.\n\nIf you did not sign up for Qalendar, please consider signing up!",
             verification_link,
-            self.config.verification_code_expires_minutes // Use expiry from config
+            last_4_digits, // Include the last 4 digits
+            self.config.verification_code_expires_minutes
         );
+
 
         let email = Message::builder()
             .from(self.sender.clone())
@@ -100,9 +106,13 @@ impl EmailService {
             urlencoding::encode(reset_code) // URL-encode code
         );
 
+        // --- Get the last 4 digits ---
+        let (_, last_4_digits) = split_code(reset_code)?; // Use split_code helper
+
         let email_body = format!(
-            "Hi,\n\nYou requested a password reset for your Qalendar account. Click the link below to reset your password:\n{}\n\nThis link expires in {} minutes.\n\nIf you did not request a password reset, please ignore this email.",
+            "Hi,\n\nYou requested a password reset for your Qalendar account. Please click the link below to reset your password:\n{}\n\nAlternatively, you can enter this code in the reset screen: **{}**\n\nThis link expires in {} minutes.\n\nIf you did not request a password reset, please ignore this email.",
             reset_link,
+            last_4_digits, // Include the last 4 digits
             self.config.reset_code_expires_minutes // Use expiry from config
         );
 

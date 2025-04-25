@@ -37,6 +37,23 @@ pub fn generate_secure_code(length: usize) -> String {
     s
 }
 
+pub fn split_code(code: &str) -> Result<(String, String), AppError> {
+    let len = code.len();
+    let suffix_len = 4; // Fixed 4 digits
+
+    if len < suffix_len {
+        // This shouldn't happen
+        tracing::error!("Generated code too short for splitting: {}", len);
+        return Err(AppError::InternalServerError("Generated code is too short".to_string()));
+    }
+
+    let prefix_len = len - suffix_len;
+    let prefix = code[..prefix_len].to_string();
+    let suffix = code[prefix_len..].to_string();
+
+    Ok((prefix, suffix))
+}
+
 // --- New: Hash a verification or reset code ---
 // Can reuse hash_password as bcrypt works fine for this
 pub async fn hash_code(code: &str) -> Result<String, AppError> {

@@ -16,7 +16,7 @@ pub fn sync_routes(app_state: AppState) -> Router { // Explicitly type state
         )
         // Route: GET /api/sync/calendar/shares/:share_id (Fetch updates for a specific shared calendar view)
         .route(
-            "/calendar/shares/:share_id", // New path
+            "/calendar/shares/{share_id}", // New path
             get(sync_handler::sync_shared_calendar_data)
         )
         // Route: POST /api/sync (Process client changes - implement later) MAYBE
