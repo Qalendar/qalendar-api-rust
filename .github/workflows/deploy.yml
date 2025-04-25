@@ -42,9 +42,10 @@ jobs:
       - name: Register new EB application version
         run: |
           TIMESTAMP=$(date +%Y%m%d%H%M%S)
+          VERSION_LABEL="${TIMESTAMP}-${{ github.sha }}-${{ github.run_number }}"
           aws elasticbeanstalk create-application-version \
             --application-name ${{ env.EB_APP_NAME }} \
-            --version-label "-${TIMESTAMP}-${{ github.sha }}-${{ github.run_number }}" \
+            --version-label "$VERSION_LABEL" \
             --source-bundle S3Bucket="${{ env.EB_S3_BUCKET }}",S3Key="${{ github.sha }}.zip" \
             --region ${{ env.AWS_REGION }}
 
