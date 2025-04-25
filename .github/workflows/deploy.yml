@@ -1,0 +1,53 @@
+name: Build & Deploy Qalendar API to Elastic Beanstalk (Docker)
+
+on:
+  push:
+    branches: ["main"]
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION:       ${{ secrets.AWS_REGION }}
+  EB_APP_NAME:      ${{ secrets.EB_APP_NAME }}
+  EB_ENV_NAME:      ${{ secrets.EB_ENV_NAME }}
+  EB_S3_BUCKET:     ${{ secrets.EB_S3_BUCKET }}
+
+jobs:
+  deploy:
+    name: Deploy to Elastic Beanstalk (Docker)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Zip app for Elastic Beanstalk
+        run: |
+          zip -r deploy.zip . -x "target/*" ".git/*" "deploy.zip"
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Upload bundle to S3
+        run: |
+          aws s3 cp deploy.zip s3://${{ env.EB_S3_BUCKET }}/${{ github.sha }}.zip
+
+      - name: Register new EB application version
+        run: |
+          aws elasticbeanstalk create-application-version \
+            --application-name ${{ env.EB_APP_NAME }} \
+            --version-label "${{ github.sha }}-${{ github.run_number }}" \
+            --source-bundle S3Bucket="${{ env.EB_S3_BUCKET }}",S3Key="${{ github.sha }}.zip" \
+            --region ${{ env.AWS_REGION }}
+
+      - name: Deploy to EB environment
+        run: |
+          aws elasticbeanstalk update-environment \
+            --environment-name ${{ env.EB_ENV_NAME }} \
+            --version-label "${{ github.sha }}-${{ github.run_number }}" \
+            --region ${{ env.AWS_REGION }}
