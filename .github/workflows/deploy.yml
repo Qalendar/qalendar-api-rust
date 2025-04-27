@@ -27,7 +27,9 @@ jobs:
         run: git clean -fdx
 
       - name: Zip app for Elastic Beanstalk
-        run: zip -r deploy.zip . -x "target/*" "deploy.zip"
+        run: |
+          cd "${{ github.workspace }}"
+          zip -r ../deploy.zip . -x "target/*"
 
       - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
