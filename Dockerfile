@@ -3,7 +3,7 @@
 # --- Build Stage ---
 # Use a base image that has the Rust compiler and Musl toolchain
 # rust:latest-slim-bullseye includes the standard Rust toolchain
-FROM rust:latest-slim-bullseye as builder
+FROM rust:slim-bullseye as builder
 
 # Install musl-tools for cross-compilation to x86_64-unknown-linux-musl
 RUN apt-get update && apt-get install -y musl-tools && rm -rf /var/lib/apt/lists/*
