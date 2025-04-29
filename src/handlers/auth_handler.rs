@@ -25,8 +25,8 @@ async fn find_user_by_email(pool: &PgPool, email: &str) -> Result<Option<User>, 
                updated_at as "updated_at!",
                deleted_at as "deleted_at!: _",
                tfa_enabled, tfa_secret,
-               verification_code, verification_code_expires_at as "verification_code_expires_at!",
-               reset_code, reset_code_expires_at as "reset_code_expires_at!"
+               verification_code, verification_code_expires_at as "verification_code_expires_at",
+               reset_code, reset_code_expires_at as "reset_code_expires_at"
         FROM users WHERE email = $1
         "#,
         email
