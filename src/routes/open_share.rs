@@ -17,7 +17,7 @@ pub fn open_share_routes(app_state: AppState) -> Router<AppState> {
         )
         // Routes with UUID parameter: /api/me/open-shares/:uuid
         .route(
-            "/:uuid", // Use :uuid for path parameter
+            "/{uuid}", // Use :uuid for path parameter
             get(open_share_handler::get_open_share_by_uuid) // GET by UUID (Owner view)
                 .put(open_share_handler::update_open_share)   // PUT to update by UUID
                 .delete(open_share_handler::delete_open_share) // DELETE by UUID
