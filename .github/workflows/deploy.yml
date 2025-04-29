@@ -1,80 +1,80 @@
-name: Deploy Qalendar API (Local Docker Build) to Elastic Beanstalk
+# name: Deploy Qalendar API (Local Docker Build) to Elastic Beanstalk
 
-on:
-  push:
-    branches: ["deploy"] # Trigger on pushes to deploy
+# on:
+#   push:
+#     branches: ["deploy"] # Trigger on pushes to deploy
 
-permissions:
-  id-token: write # Needed for OIDC
-  contents: read # Needed to checkout the code
+# permissions:
+#   id-token: write # Needed for OIDC
+#   contents: read # Needed to checkout the code
 
-env:
-  AWS_REGION:       ${{ secrets.AWS_REGION }}
-  EB_APP_NAME:      ${{ secrets.EB_APP_NAME }}
-  EB_ENV_NAME:      ${{ secrets.EB_ENV_NAME }}
-  EB_S3_BUCKET:     ${{ secrets.EB_S3_BUCKET }}
-  # Add your ECR repository URI here
-  ECR_REGISTRY_URI: ${{ secrets.ECR_REGISTRY_URI }} # e.g., 123456789012.dkr.ecr.us-east-1.amazonaws.com/qalendar-api
+# env:
+#   AWS_REGION:       ${{ secrets.AWS_REGION }}
+#   EB_APP_NAME:      ${{ secrets.EB_APP_NAME }}
+#   EB_ENV_NAME:      ${{ secrets.EB_ENV_NAME }}
+#   EB_S3_BUCKET:     ${{ secrets.EB_S3_BUCKET }}
+#   # Add your ECR repository URI here
+#   ECR_REGISTRY_URI: ${{ secrets.ECR_REGISTRY_URI }} # e.g., 123456789012.dkr.ecr.us-east-1.amazonaws.com/qalendar-api
 
-jobs:
-  deploy:
-    name: Deploy to Elastic Beanstalk (Docker)
-    runs-on: ubuntu-latest
+# jobs:
+#   deploy:
+#     name: Deploy to Elastic Beanstalk (Docker)
+#     runs-on: ubuntu-latest
 
-    steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
+#     steps:
+#       - name: Checkout repo
+#         uses: actions/checkout@v4
 
-      - name: Configure AWS credentials (OIDC)
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ secrets.AWS_ROLE_TO_assume }} # Ensure this secret exists and has permissions for ECR pull & EB deploy
-          aws-region: ${{ env.AWS_REGION }}
+#       - name: Configure AWS credentials (OIDC)
+#         uses: aws-actions/configure-aws-credentials@v4
+#         with:
+#           role-to-assume: ${{ secrets.AWS_ROLE_TO_assume }} # Ensure this secret exists and has permissions for ECR pull & EB deploy
+#           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Generate Dockerrun.aws.json
-        # This file tells Elastic Beanstalk which Docker image to use from ECR
-        run: |
-          cat <<EOF > Dockerrun.aws.json
-          {
-            "AWSEBDockerrunVersion": "1",
-            "Image": {
-              "Name": "${{ env.ECR_REGISTRY_URI }}:${{ github.sha }}", # Use the ECR URI and commit SHA as the tag
-              "Update": "true"
-            },
-            "Ports": [
-              {
-                "ContainerPort": 8000 # Your application's internal port
-              }
-            ],
-            "Volumes": [],
-            "Logging": "/var/log/containers"
-          }
-          EOF
-          cat Dockerrun.aws.json # Print the generated file for logging
+#       - name: Generate Dockerrun.aws.json
+#         # This file tells Elastic Beanstalk which Docker image to use from ECR
+#         run: |
+#           cat <<EOF > Dockerrun.aws.json
+#           {
+#             "AWSEBDockerrunVersion": "1",
+#             "Image": {
+#               "Name": "${{ env.ECR_REGISTRY_URI }}:${{ github.sha }}", # Use the ECR URI and commit SHA as the tag
+#               "Update": "true"
+#             },
+#             "Ports": [
+#               {
+#                 "ContainerPort": 8000 # Your application's internal port
+#               }
+#             ],
+#             "Volumes": [],
+#             "Logging": "/var/log/containers"
+#           }
+#           EOF
+#           cat Dockerrun.aws.json # Print the generated file for logging
 
-      - name: Zip deployment bundle
-        # Only zip the Dockerrun.aws.json file
-        run: zip -r deploy.zip Dockerrun.aws.json
+#       - name: Zip deployment bundle
+#         # Only zip the Dockerrun.aws.json file
+#         run: zip -r deploy.zip Dockerrun.aws.json
 
-      - name: Upload bundle to S3
-        run: |
-          # Use a unique S3 key based on commit SHA for the bundle
-          aws s3 cp deploy.zip s3://${{ env.EB_S3_BUCKET }}/deploy-bundles/${{ github.sha }}.zip
+#       - name: Upload bundle to S3
+#         run: |
+#           # Use a unique S3 key based on commit SHA for the bundle
+#           aws s3 cp deploy.zip s3://${{ env.EB_S3_BUCKET }}/deploy-bundles/${{ github.sha }}.zip
 
-      - name: Register new EB application version
-        run: |
-          TIMESTAMP=$(date +%Y%m%d%H%M%S)
-          VERSION_LABEL="${TIMESTAMP}-${{ github.sha }}" # Use timestamp + sha for version label
-          echo "VERSION_LABEL=$VERSION_LABEL" >> $GITHUB_ENV
-          aws elasticbeanstalk create-application-version \
-            --application-name ${{ env.EB_APP_NAME }} \
-            --version-label "$VERSION_LABEL" \
-            --source-bundle S3Bucket="${{ env.EB_S3_BUCKET }}",S3Key="deploy-bundles/${{ github.sha }}.zip" \
-            --region ${{ env.AWS_REGION }}
+#       - name: Register new EB application version
+#         run: |
+#           TIMESTAMP=$(date +%Y%m%d%H%M%S)
+#           VERSION_LABEL="${TIMESTAMP}-${{ github.sha }}" # Use timestamp + sha for version label
+#           echo "VERSION_LABEL=$VERSION_LABEL" >> $GITHUB_ENV
+#           aws elasticbeanstalk create-application-version \
+#             --application-name ${{ env.EB_APP_NAME }} \
+#             --version-label "$VERSION_LABEL" \
+#             --source-bundle S3Bucket="${{ env.EB_S3_BUCKET }}",S3Key="deploy-bundles/${{ github.sha }}.zip" \
+#             --region ${{ env.AWS_REGION }}
 
-      - name: Deploy to EB environment
-        run: |
-          aws elasticbeanstalk update-environment \
-            --environment-name ${{ env.EB_ENV_NAME }} \
-            --version-label "${{ env.VERSION_LABEL }}" \
-            --region ${{ env.AWS_REGION }}
+#       - name: Deploy to EB environment
+#         run: |
+#           aws elasticbeanstalk update-environment \
+#             --environment-name ${{ env.EB_ENV_NAME }} \
+#             --version-label "${{ env.VERSION_LABEL }}" \
+#             --region ${{ env.AWS_REGION }}
