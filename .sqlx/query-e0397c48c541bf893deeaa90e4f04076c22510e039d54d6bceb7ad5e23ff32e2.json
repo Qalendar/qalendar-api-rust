@@ -1,0 +1,89 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT\n           event_id, user_id, category_id, title, description as \"description!: _\",\n           start_time, end_time, location as \"location!: _\", rrule as \"rrule!: _\",\n           created_at as \"created_at!\", updated_at as \"updated_at!\", deleted_at as \"deleted_at!: _\"\n        FROM events e\n        WHERE e.user_id = $1 -- Events owned by the sharer\n          AND e.category_id = ANY($2) -- Category is in the list of shared categories\n          AND e.deleted_at IS NULL -- Only non-deleted events\n        ORDER BY e.start_time\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "event_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "user_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 2,
+        "name": "category_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 3,
+        "name": "title",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 4,
+        "name": "description!: _",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "start_time",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 6,
+        "name": "end_time",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 7,
+        "name": "location!: _",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 8,
+        "name": "rrule!: _",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 9,
+        "name": "created_at!",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 10,
+        "name": "updated_at!",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 11,
+        "name": "deleted_at!: _",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Int4Array"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "e0397c48c541bf893deeaa90e4f04076c22510e039d54d6bceb7ad5e23ff32e2"
+}

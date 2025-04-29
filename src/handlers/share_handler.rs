@@ -19,15 +19,20 @@ use crate::{
 };
 use chrono::DateTime; // For parsing date strings
 
-// Re-use or create a shared helper for timestamp parsing
-fn parse_timestamp(s: &str) -> Result<DateTime<Utc>, AppError> {
-    DateTime::parse_from_rfc3339(s)
-        .map(|dt| dt.with_timezone(&Utc))
-        .map_err(|e| {
-            tracing::warn!("Failed to parse timestamp '{}': {}", s, e);
-            AppError::ValidationFailed(validator::ValidationErrors::new())
-        })
-}
+use crate::utils::calendar::{
+    parse_timestamp, validate_category_ids,
+};
+
+
+// // Re-use or create a shared helper for timestamp parsing
+// fn parse_timestamp(s: &str) -> Result<DateTime<Utc>, AppError> {
+//     DateTime::parse_from_rfc3339(s)
+//         .map(|dt| dt.with_timezone(&Utc))
+//         .map_err(|e| {
+//             tracing::warn!("Failed to parse timestamp '{}': {}", s, e);
+//             AppError::ValidationFailed(validator::ValidationErrors::new())
+//         })
+// }
 
 // --- Helper: Check if share exists and is owned by the user ---
 async fn check_share_ownership(pool: &PgPool, share_id: i32, owner_user_id: i32) -> Result<bool, AppError> {
@@ -39,38 +44,6 @@ async fn check_share_ownership(pool: &PgPool, share_id: i32, owner_user_id: i32)
     .fetch_one(pool)
     .await?;
     Ok(exists.unwrap_or(false))
-}
-
-// --- Helper: Validate category IDs exist and belong to the owner ---
-async fn validate_category_ids(pool: &PgPool, owner_user_id: i32, category_ids: &[i32]) -> Result<(), AppError> {
-    if category_ids.is_empty() {
-        // If the list is empty, it's valid (meaning unshare all categories)
-        return Ok(());
-    }
-
-    // Query to count how many of the provided category_ids exist and belong to the user
-    let count: i64 = sqlx::query_scalar!(
-        r#"
-        SELECT COUNT(*)
-        FROM categories
-        WHERE category_id = ANY($1) AND user_id = $2
-        "#,
-        &category_ids, // Pass as slice/array
-        owner_user_id
-    )
-    .fetch_one(pool)
-    .await?
-    .unwrap_or(0); // Unwrap the Option<i64> to i64, defaulting to 0 if NULL
-
-    // If the count doesn't match the number of provided IDs, some are invalid or don't belong to user
-    if count as usize != category_ids.len() {
-        // Could make a more specific error finding which IDs are invalid
-        let mut err = validator::ValidationErrors::new();
-         err.add("categoryIds", validator::ValidationError::new("invalid_category_id_or_ownership"));
-        return Err(AppError::ValidationFailed(err));
-    }
-
-    Ok(())
 }
 
 

@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO open_calendar_share_categories (open_share_id, category_id)\n            VALUES ($1, $2)\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "513ddfa37b62b050bbbe32cad4636d84c388ab77a6f4b17bd40dd28d7f04b663"
+}

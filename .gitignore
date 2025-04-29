@@ -27,3 +27,7 @@ target/
 # Temporary files
 *.tmp
 *.temp
+
+# Code Editor/IDE folders
+.vscode
+.idea

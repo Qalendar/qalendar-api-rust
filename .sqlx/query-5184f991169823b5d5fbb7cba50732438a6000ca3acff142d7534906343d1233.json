@@ -1,0 +1,93 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT\n            ocs.open_share_id,\n            ocs.owner_user_id,\n            ocs.privacy_level as \"privacy_level!: _\", ocs.expires_at as \"expires_at!: _\",\n            ocs.created_at as \"created_at!\", ocs.updated_at as \"updated_at!\", ocs.deleted_at as \"deleted_at!: _\",\n            -- Shared With User Details (aliased)\n            u.user_id AS user_id_alias, -- Alias matches struct field name\n            u.display_name,\n            u.email,\n            ARRAY_AGG(ocsc.category_id) FILTER (WHERE ocsc.category_id IS NOT NULL) AS \"shared_category_ids!: Vec<i32>\"\n        FROM open_calendar_shares ocs\n        JOIN users u ON ocs.owner_user_id = u.user_id\n        LEFT JOIN open_calendar_share_categories ocsc ON ocs.open_share_id = ocsc.open_share_id\n        WHERE ocs.open_share_id = $1 AND ocs.owner_user_id = $2 AND ocs.deleted_at IS NULL\n        GROUP BY ocs.open_share_id, u.user_id\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "open_share_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "owner_user_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 2,
+        "name": "privacy_level!: _",
+        "type_info": {
+          "Custom": {
+            "name": "share_privacy_level",
+            "kind": {
+              "Enum": [
+                "full_details",
+                "busy_only"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "expires_at!: _",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 4,
+        "name": "created_at!",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 5,
+        "name": "updated_at!",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 6,
+        "name": "deleted_at!: _",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 7,
+        "name": "user_id_alias",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 8,
+        "name": "display_name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 9,
+        "name": "email",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 10,
+        "name": "shared_category_ids!: Vec<i32>",
+        "type_info": "Int4Array"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      false,
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "5184f991169823b5d5fbb7cba50732438a6000ca3acff142d7534906343d1233"
+}

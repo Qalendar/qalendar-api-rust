@@ -40,15 +40,21 @@
       - [List My Received Invitations](#list-my-received-invitations)
       - [Respond to Invitation](#respond-to-invitation)
     - [Calendar Shares (Owner Actions)](#calendar-shares-owner-actions)
-      - [Create Calendar Share](#create-calendar-share)
-      - [List My Created Shares](#list-my-created-shares)
-      - [Get My Created Share by ID](#get-my-created-share-by-id)
-      - [Update Calendar Share](#update-calendar-share)
-      - [Delete Calendar Share (Soft)](#delete-calendar-share-soft)
+      - [Create Calendar Share (Private)](#create-calendar-share-private)
+      - [List My Created Shares (Private)](#list-my-created-shares-private)
+      - [Get My Created Share by ID (Private)](#get-my-created-share-by-id-private)
+      - [Update Calendar Share (Private)](#update-calendar-share-private)
+      - [Delete Calendar Share (Soft - Private)](#delete-calendar-share-soft---private)
+      - [Create Open Calendar Share (Public)](#create-open-calendar-share-public)
+      - [List My Created Open Shares](#list-my-created-open-shares)
+      - [Get My Created Open Share by UUID (Owner View)](#get-my-created-open-share-by-uuid-owner-view)
+      - [Update Open Calendar Share](#update-open-calendar-share)
+      - [Delete Open Calendar Share (Soft)](#delete-open-calendar-share-soft)
   - [Calendar View Endpoints](#calendar-view-endpoints)
     - [Get My Consolidated Calendar](#get-my-consolidated-calendar)
-    - [List Calendars Shared With Me](#list-calendars-shared-with-me)
-    - [Get Specific Shared Calendar View](#get-specific-shared-calendar-view)
+    - [List Calendars Shared With Me (Private)](#list-calendars-shared-with-me-private)
+    - [Get Specific Shared Calendar View (Private)](#get-specific-shared-calendar-view-private)
+    - [Get Specific Open Shared Calendar View (Public)](#get-specific-open-shared-calendar-view-public)
   - [Synchronization Endpoints](#synchronization-endpoints)
     - [Sync My Data](#sync-my-data)
     - [Sync Shared Calendar Data](#sync-shared-calendar-data)
@@ -541,73 +547,120 @@ Endpoints for users to manage invitations they have received (`/api/me/invitatio
 
 ### Calendar Shares (Owner Actions)
 
-Endpoints for the owner to manage calendar shares they created (`/api/me/shares`).
+Endpoints for the owner to manage calendar shares they created (`/api/me/shares` and `/api/me/open-shares`).
 
-#### Create Calendar Share
+#### Create Calendar Share (Private)
 
 - **Method:** `POST`
 - **Path:** `/me/shares`
-- **Request Body:** (`CreateSharePayload`)
+- ... (Keep existing documentation for private share creation) ...
+
+#### List My Created Shares (Private)
+
+- **Method:** `GET`
+- **Path:** `/me/shares`
+- ... (Keep existing documentation for private share listing) ...
+
+#### Get My Created Share by ID (Private)
+
+- **Method:** `GET`
+- **Path:** `/me/shares/{share_id}`
+- ... (Keep existing documentation for private share GET by ID) ...
+
+#### Update Calendar Share (Private)
+
+- **Method:** `PUT`
+- **Path:** `/me/shares/{share_id}`
+- ... (Keep existing documentation for private share update) ...
+
+#### Delete Calendar Share (Soft - Private)
+
+- **Method:** `DELETE`
+- **Path:** `/me/shares/{share_id}`
+- ... (Keep existing documentation for private share delete) ...
+
+---
+
+#### Create Open Calendar Share (Public)
+
+- **Purpose:** Creates a new publicly accessible calendar share identified by a UUID. Requires authentication.
+- **Method:** `POST`
+- **Path:** `/me/open-shares`
+- **Request Body:** (`CreateOpenSharePayload`)
 
     ```json
     {
-      "sharedWithUserEmail": "string (required, valid email)",
       "categoryIds": [integer] (required, array of category IDs, min 1, must exist and belong to user),
-      "message": "string (optional, max 1000 chars)",
       "privacyLevel": "string (optional, 'fullDetails' | 'busyOnly', defaults to 'fullDetails')",
       "expiresAt": "string (optional, ISO 8601 format)"
     }
     ```
 
-- **Success Response:** `201 Created` with the created `ShareDetailsResponse` object (includes shared_with user details and category IDs).
+- **Success Response:** `201 Created` with the created `OpenShareDetailsResponse` object (includes owner details and category IDs).
 
-- **Error Responses:** `400` (Validation, invalid categoryIds), `401`, `404` (sharedWithUser not found), `409` (Share already exists with this user), `500`.
+    ```json
+    {
+      "openShareId": "string (UUID)",
+      "ownerUser": { ... User details (userId, displayName, email, deletedAt) ... },
+      "privacyLevel": "string",
+      "expiresAt": "string (ISO 8601 timestamp, optional)",
+      "createdAt": "string (ISO 8601 timestamp)",
+      "updatedAt": "string (ISO 8601 timestamp)",
+      "deletedAt": "string (ISO 8601 timestamp, optional)", // Soft deleted status of the share itself
+      "sharedCategoryIds": [integer]
+    }
+    ```
 
-#### List My Created Shares
+- **Error Responses:** `400`, `401`, `500`.
 
+#### List My Created Open Shares
+
+- **Purpose:** Retrieves a list of open calendar shares created by the authenticated user.
 - **Method:** `GET`
-- **Path:** `/me/shares`
-- **Success Response:** `200 OK` with an array of `ListSharesResponseItem` objects created by the user. `[]` if none.
+- **Path:** `/me/open-shares`
+- **Success Response:** `200 OK` with an array of `ListOpenSharesResponseItem` objects created by the user. `[]` if none.
 - **Error Responses:** `401`, `500`.
 
-#### Get My Created Share by ID
+#### Get My Created Open Share by UUID (Owner View)
 
+- **Purpose:** Retrieves details for a specific open share owned by the authenticated user.
 - **Method:** `GET`
-- **Path:** `/me/shares/{share_id}`
+- **Path:** `/me/open-shares/{uuid}`
 - **Path Parameters:**
-  - `share_id` (integer): The ID of the share to retrieve (must be owned by user).
-- **Success Response:** `200 OK` with the specified `ShareDetailsResponse` object.
-- **Error Responses:** `401`, `404` (Not found or doesn't belong to user), `500`.
+  - `uuid` (string, UUID format): The UUID of the open share to retrieve.
+- **Success Response:** `200 OK` with the specified `OpenShareDetailsResponse` object.
+- **Error Responses:** `401`, `404` (Not found, doesn't belong to user, or soft-deleted), `500`.
 
-#### Update Calendar Share
+#### Update Open Calendar Share
 
+- **Purpose:** Updates the settings for an open share owned by the authenticated user.
 - **Method:** `PUT`
-- **Path:** `/me/shares/{share_id}`
+- **Path:** `/me/open-shares/{uuid}`
 - **Path Parameters:**
-  - `share_id` (integer): The ID of the share to update (must be owned by user).
-- **Request Body:** (`UpdateSharePayload`) - Send only fields to update. Send `"field": null` to clear optional fields like `message`, `expiresAt`. Send `categoryIds: []` to remove all categories.
+  - `uuid` (string, UUID format): The UUID of the open share to update.
+- **Request Body:** (`UpdateOpenSharePayload`) - Send only fields to update. Send `"field": null` to clear optional fields like `expiresAt`. Send `categoryIds: []` to remove all categories.
 
     ```json
     {
       "categoryIds": [integer] (optional, array of category IDs, must exist and belong to user),
-      "message": "string | null (optional)",
       "privacyLevel": "string (optional, 'fullDetails' | 'busyOnly')",
       "expiresAt": "string | null (optional, ISO 8601 format)"
     }
     ```
 
-- **Success Response:** `200 OK` with the updated `ShareDetailsResponse` object.
+- **Success Response:** `200 OK` with the updated `OpenShareDetailsResponse` object.
 
-- **Error Responses:** `400` (Validation, invalid categoryIds), `401`, `404`, `500`.
+- **Error Responses:** `400`, `401`, `404`, `500`.
 
-#### Delete Calendar Share (Soft)
+#### Delete Open Calendar Share (Soft)
 
+- **Purpose:** Soft-deletes an open share owned by the authenticated user. The public link will no longer work.
 - **Method:** `DELETE`
-- **Path:** `/me/shares/{share_id}`
+- **Path:** `/me/open-shares/{uuid}`
 - **Path Parameters:**
-  - `share_id` (integer): The ID of the share to delete (must be owned by user).
+  - `uuid` (string, UUID format): The UUID of the open share to delete.
 - **Success Response:** `204 No Content`
-- **Error Responses:** `401`, `404`, `500`.
+- **Error Responses:** `401`, `404` (Not found, doesn't belong to user, or already deleted), `500`.
 
 ---
 
@@ -615,50 +668,49 @@ Endpoints for the owner to manage calendar shares they created (`/api/me/shares`
 
 Endpoints for viewing combined calendar data.
 
-**Authentication:** All endpoints in this section require a valid `Authorization: Bearer <token>` header.
+**Authentication:** The `/calendar` and `/calendar/shares` endpoints require authentication. The `/calendar/open-shares` endpoint is public.
 
 ### Get My Consolidated Calendar
 
-- **Purpose:** Retrieves all relevant calendar items (owned events, owned deadlines, accepted invites) for the authenticated user. Does *not* perform recurrence expansion or range filtering (frontend responsibility).
-- **Method:** `GET`
 - **Path:** `/calendar`
-- **Success Response:** `200 OK` with `UserCalendarResponse` object.
+- ... (Keep existing documentation) ...
 
-    ```json
-    {
-      "events": [Event], // Array of base Event objects
-      "deadlines": [Deadline] // Array of Deadline objects
-    }
-    ```
+### List Calendars Shared With Me (Private)
 
-- **Error Responses:** `401`, `500`.
-
-### List Calendars Shared With Me
-
-- **Purpose:** Retrieves a list of calendar shares where the authenticated user is the recipient.
-- **Method:** `GET`
 - **Path:** `/calendar/shares`
-- **Success Response:** `200 OK` with an array of `ListSharesResponseItem` objects (includes owner details and shared category IDs). `[]` if none.
-- **Error Responses:** `401`, `500`.
+- ... (Keep existing documentation) ...
 
-### Get Specific Shared Calendar View
+### Get Specific Shared Calendar View (Private)
 
-- **Purpose:** Retrieves calendar items (events, deadlines) from a specific shared calendar, applying category filters and privacy rules set by the owner. Does *not* perform recurrence expansion or range filtering (frontend responsibility).
-- **Method:** `GET`
 - **Path:** `/calendar/shares/{share_id}`
+- ... (Keep existing documentation) ...
+
+### Get Specific Open Shared Calendar View (Public)
+
+- **Purpose:** Retrieves calendar items (events, deadlines) from a publicly accessible open share, applying category filters and privacy rules. No authentication required.
+- **Method:** `GET`
+- **Path:** `/calendar/open-shares/{uuid}`
 - **Path Parameters:**
-  - `share_id` (integer): The ID of the share instance to view (must be shared with the authenticated user).
-- **Success Response:** `200 OK` with `SharedCalendarResponse` object.
+  - `uuid` (string, UUID format): The UUID of the open share instance to view.
+- **Authentication:** None
+- **Success Response:** `200 OK` with `PublicSharedCalendarResponse` object.
 
-    ```json
-    {
-      "shareInfo": CalendarShare, // Details of the share instance
-      "events": [Event], // Array of Event objects (details masked if privacy='busyOnly')
-      "deadlines": [Deadline] // Array of Deadline objects (details masked if privacy='busyOnly')
-    }
-    ```
+```json
+{
+  "openShareId": "string (UUID)",
+  "ownerUser": { ... Basic User details (userId, displayName, email, deletedAt) ... }, // The user who created the share
+  "privacyLevel": "string",
+  "expiresAt": "string (ISO 8601 timestamp, optional)",
+  "createdAt": "string (ISO 8601 timestamp)",
+  "updatedAt": "string (ISO 8601 timestamp)",
+  "deletedAt": "string (ISO 8601 timestamp, optional)", // Soft deleted status of the share itself
+  "events": [SharedCalendarEvent], // Array of Event objects (details masked if privacy='busyOnly')
+  "deadlines": [SharedCalendarDeadline] // Array of Deadline objects (details masked if privacy='busyOnly')
+}
+```
 
-  - **Note on `busyOnly`:** If `shareInfo.privacyLevel` is `busyOnly`, event/deadline `title`, `description`, `location`, `category_id` will be masked/nulled, and `priority` will be reset to `normal`.
+- **Note on `busyOnly`:** If `privacyLevel` is `busyOnly`, event/deadline `title`, `description`, `location`, `category_id`, `priority`, `workloadMagnitude`, `workloadUnit` will be masked/nulled or defaulted to generic values.
+- **Note on Content:** This includes events and deadlines owned by the sharer that are in the shared categories. It **does not** include events where the sharer is an accepted invitee to *someone else's* event.
 - **Error Responses:** `401`, `404` (Share not found, not shared with user, or expired), `500`.
 
 ---

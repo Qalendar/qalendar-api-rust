@@ -5,7 +5,7 @@ use crate::middleware::auth::AuthenticatedUser; // Import the extractor
 use axum::Json; // For returning JSON responses
 use serde_json::json; // For simple JSON responses
 
-use super::{category, deadline, event, invitation, share, tfa, ai}; // Import submodules
+use super::{category, deadline, event, invitation, share, tfa, ai, open_share}; // Import submodules
 
 // Handler that requires authentication
 // Axum automatically runs the AuthenticatedUser extractor before this handler
@@ -42,6 +42,7 @@ pub fn me_routes(app_state: AppState) -> Router {
     let shares_router = share::share_routes(app_state.clone());
     let tfa_router = tfa::tfa_routes(app_state.clone());
     let ai_router = ai::ai_routes(app_state.clone());
+    let open_share_router = open_share::open_share_routes(app_state.clone());
 
     Router::new()
        // Define the base protected route /api/me
@@ -57,5 +58,6 @@ pub fn me_routes(app_state: AppState) -> Router {
         // --- NEW AI Assistant Route ---
        .nest("/ai-assistant", ai_router) // Nest the AI router here. Its route is "/ai-assistant",
         // so combined path is /me/ai-assistant
+        .nest("/open-shares", open_share_router)
        .with_state(app_state)
 }

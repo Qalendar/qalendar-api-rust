@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM open_calendar_share_categories WHERE open_share_id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "26c07a99069cc2861edd8aee366ad3559ec23bbe15f5a59830a1ea0af97fb799"
+}
