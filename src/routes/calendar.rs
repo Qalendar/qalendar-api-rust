@@ -19,14 +19,14 @@ pub fn calendar_routes(app_state: AppState) -> Router { // Explicitly type state
                   // Route: /api/calendar/shares (List calendars shared WITH the authenticated user)
                   .route("/", get(calendar_handler::list_received_shares))
                   // Route: /api/calendar/shares/:share_id (View a specific private shared calendar)
-                  .route("/:share_id", get(calendar_handler::get_shared_calendar))
+                  .route("/{share_id}", get(calendar_handler::get_shared_calendar))
                   .with_state(app_state.clone())
         )
 
         // --- NEW: OPEN SHARED CALENDAR ROUTE (Public) ---
         // Route: /api/calendar/open-shares/:uuid
         .route(
-            "/open-shares/:uuid", // Use :uuid for path parameter
+            "/open-shares/{uuid}", // Use :uuid for path parameter
             get(calendar_handler::get_open_shared_calendar) // Public handler
         )
         // No .with_state needed on the public route itself, handler accesses it via State extractor
