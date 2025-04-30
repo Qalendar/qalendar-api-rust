@@ -245,8 +245,8 @@ pub async fn get_shared_calendar(
 
 
     // 5. Apply Privacy Level and convert to shared calendar formats
-    let events = if privacy_level == SharePrivacyLevel::BusyOnly {
-        // Apply busyOnly transformation to Events
+    let events = if privacy_level == SharePrivacyLevel::Limited {
+        // Apply Limited transformation to Events
         events.into_iter().map(|event| {
             SharedCalendarEvent {
                 event_id: event.event_id,
@@ -278,8 +278,8 @@ pub async fn get_shared_calendar(
     };
 
     // Apply similar transformation to Deadlines
-    let deadlines = if privacy_level == SharePrivacyLevel::BusyOnly {
-        // Apply busyOnly transformation to Deadlines
+    let deadlines = if privacy_level == SharePrivacyLevel::Limited {
+        // Apply Limited transformation to Deadlines
         deadlines.into_iter().map(|deadline| {
             SharedCalendarDeadline {
                 deadline_id: deadline.deadline_id,
@@ -412,7 +412,7 @@ pub async fn get_open_shared_calendar(
 
 
     // 5. Apply Privacy Level and convert to shared calendar formats (Reusing the same logic as private shares)
-    let events_formatted = if privacy_level == SharePrivacyLevel::BusyOnly {
+    let events_formatted = if privacy_level == SharePrivacyLevel::Limited {
         events.into_iter().map(|event| {
             SharedCalendarEvent {
                 event_id: event.event_id,
@@ -442,7 +442,7 @@ pub async fn get_open_shared_calendar(
         }).collect()
     };
 
-    let deadlines_formatted = if privacy_level == SharePrivacyLevel::BusyOnly {
+    let deadlines_formatted = if privacy_level == SharePrivacyLevel::Limited {
         deadlines.into_iter().map(|deadline| {
             SharedCalendarDeadline {
                 deadline_id: deadline.deadline_id,

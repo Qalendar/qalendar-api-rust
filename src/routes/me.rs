@@ -60,7 +60,7 @@ pub fn me_routes(app_state: AppState) -> Router {
            .delete(delete_user_handler) // DELETE /api/me (soft delete user)
        )
        // Define the base protected route /api/me
-       .route("/", get(get_authenticated_user_info)) // /api/me
+    //    .route("/", get(get_authenticated_user_info)) // /api/me
        .nest("/categories", categories_router) // /api/me/categories
        .nest("/deadlines", deadlines_router)   // /api/me/deadlines
        .nest("/events", events_router) // /api/me/events

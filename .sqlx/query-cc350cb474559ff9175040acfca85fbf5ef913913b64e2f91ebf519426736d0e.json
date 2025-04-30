@@ -21,8 +21,8 @@
             "name": "share_privacy_level",
             "kind": {
               "Enum": [
-                "full_details",
-                "busy_only"
+                "full",
+                "limited"
               ]
             }
           }
@@ -58,7 +58,7 @@
     "nullable": [
       false,
       false,
-      false,
+      true,
       true,
       true,
       true,

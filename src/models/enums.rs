@@ -55,6 +55,6 @@ impl FromStr for EventInvitationStatus {
 #[derive(Default)]
 pub enum SharePrivacyLevel {
     #[default]
-    FullDetails,
-    BusyOnly,
+    Full,
+    Limited,
 }

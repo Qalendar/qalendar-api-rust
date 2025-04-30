@@ -342,8 +342,8 @@ pub async fn sync_shared_calendar_data(
 
 
     // 5. Apply Privacy Level (apply BEFORE returning)
-    let events: Vec<SharedCalendarEvent> = if privacy_level == SharePrivacyLevel::BusyOnly {
-        // Apply busyOnly transformation to Events
+    let events: Vec<SharedCalendarEvent> = if privacy_level == SharePrivacyLevel::Limited {
+        // Apply Limited transformation to Events
         events.into_iter().map(|event| {
             SharedCalendarEvent {
                 event_id: event.event_id,
@@ -375,8 +375,8 @@ pub async fn sync_shared_calendar_data(
     };
 
     // Apply similar transformation to Deadlines
-    let deadlines: Vec<SharedCalendarDeadline> = if privacy_level == SharePrivacyLevel::BusyOnly {
-        // Apply busyOnly transformation to Deadlines
+    let deadlines: Vec<SharedCalendarDeadline> = if privacy_level == SharePrivacyLevel::Limited {
+        // Apply Limited transformation to Deadlines
         deadlines.into_iter().map(|deadline| {
             SharedCalendarDeadline {
                 deadline_id: deadline.deadline_id,

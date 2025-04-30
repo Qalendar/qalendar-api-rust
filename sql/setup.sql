@@ -74,7 +74,7 @@ EXECUTE FUNCTION trigger_set_timestamp();
 CREATE TYPE deadline_priority_level AS ENUM ('normal', 'important', 'urgent');
 CREATE TYPE workload_unit_type AS ENUM ('minutes', 'hours', 'days');
 CREATE TYPE event_invitation_status AS ENUM ('pending', 'accepted', 'rejected', 'maybe');
-CREATE TYPE share_privacy_level AS ENUM ('full_details', 'busy_only');
+CREATE TYPE share_privacy_level AS ENUM ('full', 'limited');
 
 -- Deadlines Table
 CREATE TABLE deadlines (
@@ -189,7 +189,7 @@ CREATE TABLE calendar_shares (
     owner_user_id INTEGER NOT NULL,
     shared_with_user_id INTEGER NOT NULL,
     message TEXT,
-    privacy_level share_privacy_level NOT NULL DEFAULT 'full_details',
+    privacy_level share_privacy_level NOT NULL DEFAULT 'full',
     expires_at TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -215,7 +215,7 @@ CREATE TABLE calendar_share_categories (
 CREATE TABLE open_calendar_shares (
     open_share_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(), -- UUID primary key
     owner_user_id INTEGER NOT NULL,                           -- The user sharing their calendar view
-    privacy_level share_privacy_level NOT NULL DEFAULT 'full_details',
+    privacy_level share_privacy_level NOT NULL DEFAULT 'full',
     expires_at TIMESTAMP WITH TIME ZONE,                      -- NULL means never expires
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),        -- For sync/tracking changes

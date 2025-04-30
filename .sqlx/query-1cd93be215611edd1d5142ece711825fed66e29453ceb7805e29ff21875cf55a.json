@@ -10,8 +10,8 @@
             "name": "share_privacy_level",
             "kind": {
               "Enum": [
-                "full_details",
-                "busy_only"
+                "full",
+                "limited"
               ]
             }
           }
