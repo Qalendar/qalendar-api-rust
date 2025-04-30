@@ -126,7 +126,7 @@ pub async fn register_user_handler(
         email_verified: insert_result.email_verified.unwrap_or(false), // Should be false
         created_at: insert_result.created_at.unwrap(), // Should not be null
         date_of_birth: insert_result.date_of_birth,
-        tfa_enabled: Some(insert_result.tfa_enabled)
+        tfa_enabled: Some(false)
     };
 
     let token = create_token(user_data.user_id, &state.config)?;
