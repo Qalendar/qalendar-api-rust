@@ -59,27 +59,28 @@ jobs:
         # Creates the Dockerrun.aws.json file required by Elastic Beanstalk Docker environments.
         # This file tells EB which Docker image to pull and run.
         # It points to the image in ECR using the configured ECR URI and the current commit SHA as the tag.
+        # Use the ECR URI from environment variable and the commit SHA as the tag
+        # Always pull the latest version of this tag
+        # Volumes, Authentication (for private ECR), Logging can be added here if needed
+        # Specify the internal port your application binds to INSIDE the container
+        # Configure container logs forwarding to CloudWatch Logs
         run: |
           cat <<EOF > Dockerrun.aws.json
           {
             "AWSEBDockerrunVersion": "1",
             "Image": {
-              # Use the ECR URI from environment variable and the commit SHA as the tag
               "Name": "${{ env.ECR_REGISTRY_URI }}:${{ github.sha }}",
-              "Update": "true" # Always pull the latest version of this tag
+              "Update": "true"
             },
             "Ports": [
               {
-                # Specify the internal port your application binds to INSIDE the container
                 "ContainerPort": 8000
               }
             ],
-            # Volumes, Authentication (for private ECR), Logging can be added here if needed
             "Volumes": [],
-            "Logging": "/var/log/containers" # Configure container logs forwarding to CloudWatch Logs
+            "Logging": "/var/log/containers"
           }
           EOF
-          # Print the generated file content to the workflow logs for debugging
           echo "Generated Dockerrun.aws.json:"
           cat Dockerrun.aws.json
 
