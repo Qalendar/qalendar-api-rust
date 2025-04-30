@@ -1,80 +1,123 @@
-# name: Deploy Qalendar API (Local Docker Build) to Elastic Beanstalk
+# .github/workflows/main.yml
 
-# on:
-#   push:
-#     branches: ["deploy"] # Trigger on pushes to deploy
+# Name of the workflow
+name: Deploy Qalendar API (Local Docker Build) to Elastic Beanstalk
 
-# permissions:
-#   id-token: write # Needed for OIDC
-#   contents: read # Needed to checkout the code
+# When the workflow should run
+on:
+  push:
+    # Trigger the workflow on pushes to the 'main' branch
+    branches: ["deploy-to-aws"]
 
-# env:
-#   AWS_REGION:       ${{ secrets.AWS_REGION }}
-#   EB_APP_NAME:      ${{ secrets.EB_APP_NAME }}
-#   EB_ENV_NAME:      ${{ secrets.EB_ENV_NAME }}
-#   EB_S3_BUCKET:     ${{ secrets.EB_S3_BUCKET }}
-#   # Add your ECR repository URI here
-#   ECR_REGISTRY_URI: ${{ secrets.ECR_REGISTRY_URI }} # e.g., 123456789012.dkr.ecr.us-east-1.amazonaws.com/qalendar-api
+# Permissions required by the workflow
+permissions:
+  # Grant the job permission to fetch an OIDC token from GitHub
+  id-token: write
+  # Grant the job permission to read the repository content (needed for checkout)
+  contents: read
 
-# jobs:
-#   deploy:
-#     name: Deploy to Elastic Beanstalk (Docker)
-#     runs-on: ubuntu-latest
+# Environment variables available to all jobs in this workflow
+env:
+  # AWS Region where Elastic Beanstalk and S3 bucket reside
+  AWS_REGION: ${{ secrets.AWS_REGION }}
+  # Elastic Beanstalk Application Name
+  EB_APP_NAME: ${{ secrets.EB_APP_NAME }}
+  # Elastic Beanstalk Environment Name to deploy to
+  EB_ENV_NAME: ${{ secrets.EB_ENV_NAME }}
+  # Name of the S3 bucket used by Elastic Beanstalk for source bundles
+  EB_S3_BUCKET: ${{ secrets.EB_S3_BUCKET }}
+  # ECR Repository URI where the Docker image is stored (e.g., 123456789012.dkr.ecr.us-east-1.amazonaws.com/my-repo)
+  ECR_REGISTRY_URI: ${{ secrets.ECR_REGISTRY_URI }}
 
-#     steps:
-#       - name: Checkout repo
-#         uses: actions/checkout@v4
+# Define the jobs to run
+jobs:
+  deploy:
+    # Name of the job
+    name: Deploy to Elastic Beanstalk (Docker)
+    # Runner environment
+    runs-on: ubuntu-latest
 
-#       - name: Configure AWS credentials (OIDC)
-#         uses: aws-actions/configure-aws-credentials@v4
-#         with:
-#           role-to-assume: ${{ secrets.AWS_ROLE_TO_assume }} # Ensure this secret exists and has permissions for ECR pull & EB deploy
-#           aws-region: ${{ env.AWS_REGION }}
+    # Steps define the sequence of actions
+    steps:
+      - name: Checkout repo
+        # Checks out the repository code
+        uses: actions/checkout@v4
 
-#       - name: Generate Dockerrun.aws.json
-#         # This file tells Elastic Beanstalk which Docker image to use from ECR
-#         run: |
-#           cat <<EOF > Dockerrun.aws.json
-#           {
-#             "AWSEBDockerrunVersion": "1",
-#             "Image": {
-#               "Name": "${{ env.ECR_REGISTRY_URI }}:${{ github.sha }}", # Use the ECR URI and commit SHA as the tag
-#               "Update": "true"
-#             },
-#             "Ports": [
-#               {
-#                 "ContainerPort": 8000 # Your application's internal port
-#               }
-#             ],
-#             "Volumes": [],
-#             "Logging": "/var/log/containers"
-#           }
-#           EOF
-#           cat Dockerrun.aws.json # Print the generated file for logging
+      # No build steps needed here!
+      # The Docker image is assumed to be built and pushed locally before this workflow runs.
 
-#       - name: Zip deployment bundle
-#         # Only zip the Dockerrun.aws.json file
-#         run: zip -r deploy.zip Dockerrun.aws.json
+      - name: Configure AWS credentials (OIDC)
+        # Configures AWS credentials using GitHub's OIDC provider
+        # Assumes you have set up an IAM Role in AWS for GitHub Actions OIDC
+        # and the 'AWS_ROLE_TO_assume' secret contains the ARN of this role.
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_assume }} # ARN of the IAM Role for OIDC
+          aws-region: ${{ env.AWS_REGION }}
 
-#       - name: Upload bundle to S3
-#         run: |
-#           # Use a unique S3 key based on commit SHA for the bundle
-#           aws s3 cp deploy.zip s3://${{ env.EB_S3_BUCKET }}/deploy-bundles/${{ github.sha }}.zip
+      - name: Generate Dockerrun.aws.json
+        # Creates the Dockerrun.aws.json file required by Elastic Beanstalk Docker environments.
+        # This file tells EB which Docker image to pull and run.
+        # It points to the image in ECR using the configured ECR URI and the current commit SHA as the tag.
+        run: |
+          cat <<EOF > Dockerrun.aws.json
+          {
+            "AWSEBDockerrunVersion": "1",
+            "Image": {
+              # Use the ECR URI from environment variable and the commit SHA as the tag
+              "Name": "${{ env.ECR_REGISTRY_URI }}:${{ github.sha }}",
+              "Update": "true" # Always pull the latest version of this tag
+            },
+            "Ports": [
+              {
+                # Specify the internal port your application binds to INSIDE the container
+                "ContainerPort": 8000
+              }
+            ],
+            # Volumes, Authentication (for private ECR), Logging can be added here if needed
+            "Volumes": [],
+            "Logging": "/var/log/containers" # Configure container logs forwarding to CloudWatch Logs
+          }
+          EOF
+          # Print the generated file content to the workflow logs for debugging
+          echo "Generated Dockerrun.aws.json:"
+          cat Dockerrun.aws.json
 
-#       - name: Register new EB application version
-#         run: |
-#           TIMESTAMP=$(date +%Y%m%d%H%M%S)
-#           VERSION_LABEL="${TIMESTAMP}-${{ github.sha }}" # Use timestamp + sha for version label
-#           echo "VERSION_LABEL=$VERSION_LABEL" >> $GITHUB_ENV
-#           aws elasticbeanstalk create-application-version \
-#             --application-name ${{ env.EB_APP_NAME }} \
-#             --version-label "$VERSION_LABEL" \
-#             --source-bundle S3Bucket="${{ env.EB_S3_BUCKET }}",S3Key="deploy-bundles/${{ github.sha }}.zip" \
-#             --region ${{ env.AWS_REGION }}
+      - name: Zip deployment bundle
+        # Creates a zip file containing only the Dockerrun.aws.json file.
+        # This zip is what Elastic Beanstalk receives as the application version source bundle.
+        run: zip -r deploy.zip Dockerrun.aws.json
 
-#       - name: Deploy to EB environment
-#         run: |
-#           aws elasticbeanstalk update-environment \
-#             --environment-name ${{ env.EB_ENV_NAME }} \
-#             --version-label "${{ env.VERSION_LABEL }}" \
-#             --region ${{ env.AWS_REGION }}
+      - name: Upload bundle to S3
+        # Uploads the zip bundle to the designated S3 bucket for Elastic Beanstalk.
+        # The S3 key includes the commit SHA to ensure uniqueness for each deployment bundle.
+        run: |
+          aws s3 cp deploy.zip s3://${{ env.EB_S3_BUCKET }}/deploy-bundles/${{ github.sha }}.zip
+          echo "Uploaded deploy.zip to s3://${{ env.EB_S3_BUCKET }}/deploy-bundles/${{ github.sha }}.zip"
+
+      - name: Register new EB application version
+        # Creates a new application version in Elastic Beanstalk, referencing the S3 bundle.
+        # The version label includes a timestamp and the commit SHA for easy identification.
+        run: |
+          # Generate a unique version label based on timestamp and commit SHA
+          TIMESTAMP=$(date +%Y%m%d%H%M%S)
+          VERSION_LABEL="${TIMESTAMP}-${{ github.sha }}"
+          echo "Generated EB Version Label: $VERSION_LABEL"
+          # Store the version label in the GitHub Actions environment for the next step
+          echo "VERSION_LABEL=$VERSION_LABEL" >> $GITHUB_ENV
+
+          aws elasticbeanstalk create-application-version \
+            --application-name ${{ env.EB_APP_NAME }} \
+            --version-label "$VERSION_LABEL" \
+            --source-bundle S3Bucket="${{ env.EB_S3_BUCKET }}",S3Key="deploy-bundles/${{ github.sha }}.zip" \
+            --region ${{ env.AWS_REGION }}
+
+      - name: Deploy to EB environment
+        # Updates the specified Elastic Beanstalk environment to use the newly registered application version.
+        run: |
+          echo "Deploying version ${{ env.VERSION_LABEL }} to environment ${{ env.EB_ENV_NAME }}"
+          aws elasticbeanstalk update-environment \
+            --environment-name ${{ env.EB_ENV_NAME }} \
+            --version-label "${{ env.VERSION_LABEL }}"
+            # You might add --timeout or wait commands here for production to wait for deployment success/failure
+            # e.g., --region ${{ env.AWS_REGION }} && aws elasticbeanstalk wait environment-updated --application-name ${{ env.EB_APP_NAME }} --version-label "${{ env.VERSION_LABEL }}" --region ${{ env.AWS_REGION }}
