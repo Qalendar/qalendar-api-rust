@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n        SELECT\n           deadline_id, user_id, category_id, title, description, due_date, virtual_due_date, priority as \"priority!: _\",\n           workload_magnitude as \"workload_magnitude!: _\", workload_unit as \"workload_unit!: _\",\n           created_at as \"created_at!\", updated_at as \"updated_at!\", deleted_at as \"deleted_at!: _\"\n        FROM deadlines\n        WHERE user_id = $1\n        ORDER BY due_date -- Optional: order by due date\n        ",
+  "query": "\n        SELECT\n           deadline_id, user_id, category_id, title, description as \"description!: _\",\n           due_date, virtual_due_date as \"virtual_due_date!: _\", priority as \"priority!: _\",\n           workload_magnitude as \"workload_magnitude!: _\", workload_unit as \"workload_unit!: _\",\n           created_at as \"created_at!\", updated_at as \"updated_at!\", deleted_at as \"deleted_at!: _\"\n        FROM deadlines\n        WHERE user_id = $1 -- Only deadlines owned by the sharer\n          AND category_id = ANY($2) -- Filter by shared categories\n          AND deleted_at IS NULL -- Only non-deleted deadlines\n        ORDER BY due_date\n        ",
   "describe": {
     "columns": [
       {
@@ -25,7 +25,7 @@
       },
       {
         "ordinal": 4,
-        "name": "description",
+        "name": "description!: _",
         "type_info": "Text"
       },
       {
@@ -35,7 +35,7 @@
       },
       {
         "ordinal": 6,
-        "name": "virtual_due_date",
+        "name": "virtual_due_date!: _",
         "type_info": "Timestamptz"
       },
       {
@@ -93,7 +93,8 @@
     ],
     "parameters": {
       "Left": [
-        "Int4"
+        "Int4",
+        "Int4Array"
       ]
     },
     "nullable": [
@@ -112,5 +113,5 @@
       true
     ]
   },
-  "hash": "586f49a2083807434109dd1154656d49532a7eaff1262030a782ef390fed3cd4"
+  "hash": "c8e70f99bfe8b63f078b9874cae2f14016845f68338c43e59516a3eece4db352"
 }

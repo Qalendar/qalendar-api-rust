@@ -8,3 +8,4 @@ pub mod event_invitation;
 pub mod calendar_share;
 pub mod calendar;
 pub mod sync;
+pub mod open_share;

@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        UPDATE open_calendar_shares\n        SET deleted_at = NOW() -- Soft delete\n        WHERE open_share_id = $1 AND owner_user_id = $2 AND deleted_at IS NULL\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "a04f2170a45e152910e74f1f5bb7027719a0f9cb2d2b9335b74dd2e6c614c13e"
+}

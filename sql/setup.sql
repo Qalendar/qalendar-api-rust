@@ -1,8 +1,13 @@
+-- Add the UUID extension if it's not already enabled in your database
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
 -- Drop types and tables in reverse order of dependency if they exist
 DROP TABLE IF EXISTS event_exceptions CASCADE;
 DROP TABLE IF EXISTS event_invitations CASCADE;
 DROP TABLE IF EXISTS calendar_share_categories CASCADE;
 DROP TABLE IF EXISTS calendar_shares CASCADE;
+DROP TABLE IF EXISTS open_calendar_share_categories CASCADE;
+DROP TABLE IF EXISTS open_calendar_shares CASCADE;
 DROP TABLE IF EXISTS events CASCADE;
 DROP TABLE IF EXISTS deadlines CASCADE;
 DROP TABLE IF EXISTS categories CASCADE;
@@ -69,7 +74,7 @@ EXECUTE FUNCTION trigger_set_timestamp();
 CREATE TYPE deadline_priority_level AS ENUM ('normal', 'important', 'urgent');
 CREATE TYPE workload_unit_type AS ENUM ('minutes', 'hours', 'days');
 CREATE TYPE event_invitation_status AS ENUM ('pending', 'accepted', 'rejected', 'maybe');
-CREATE TYPE share_privacy_level AS ENUM ('full_details', 'busy_only');
+CREATE TYPE share_privacy_level AS ENUM ('full', 'limited');
 
 -- Deadlines Table
 CREATE TABLE deadlines (
@@ -184,7 +189,7 @@ CREATE TABLE calendar_shares (
     owner_user_id INTEGER NOT NULL,
     shared_with_user_id INTEGER NOT NULL,
     message TEXT,
-    privacy_level share_privacy_level NOT NULL DEFAULT 'full_details',
+    privacy_level share_privacy_level NOT NULL DEFAULT 'full',
     expires_at TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -204,6 +209,38 @@ CREATE TABLE calendar_share_categories (
     PRIMARY KEY (share_id, category_id),
     FOREIGN KEY (share_id) REFERENCES calendar_shares(share_id) ON DELETE CASCADE,
     FOREIGN KEY (category_id) REFERENCES categories(category_id) ON DELETE CASCADE
+);
+
+-- Table to manage publicly accessible calendar shares
+CREATE TABLE open_calendar_shares (
+    open_share_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(), -- UUID primary key
+    owner_user_id INTEGER NOT NULL,                           -- The user sharing their calendar view
+    privacy_level share_privacy_level NOT NULL DEFAULT 'full',
+    expires_at TIMESTAMP WITH TIME ZONE,                      -- NULL means never expires
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),        -- For sync/tracking changes
+    deleted_at TIMESTAMP WITH TIME ZONE NULL,                 -- For soft delete
+
+    FOREIGN KEY (owner_user_id) REFERENCES users(user_id) ON DELETE CASCADE
+    -- No shared_with_user_id or message as it's public
+);
+
+-- Trigger for open_calendar_shares table
+DROP TRIGGER IF EXISTS set_timestamp_open_calendar_shares ON open_calendar_shares;
+CREATE TRIGGER set_timestamp_open_calendar_shares
+    BEFORE UPDATE ON open_calendar_shares
+    FOR EACH ROW
+EXECUTE FUNCTION trigger_set_timestamp();
+
+
+-- Table to link open shares to specific categories
+CREATE TABLE open_calendar_share_categories (
+    open_share_id UUID NOT NULL,
+    category_id INTEGER NOT NULL,
+    PRIMARY KEY (open_share_id, category_id), -- Composite primary key
+
+    FOREIGN KEY (open_share_id) REFERENCES open_calendar_shares(open_share_id) ON DELETE CASCADE,
+    FOREIGN KEY (category_id) REFERENCES categories(category_id) ON DELETE CASCADE -- If a category is deleted, remove it from open shares
 );
 
 
@@ -238,5 +275,34 @@ CREATE INDEX IF NOT EXISTS idx_calendar_shares_shared_with ON calendar_shares(sh
 CREATE INDEX IF NOT EXISTS idx_calendar_share_categories_share_id ON calendar_share_categories(share_id);
 CREATE INDEX IF NOT EXISTS idx_calendar_share_categories_category_id ON calendar_share_categories(category_id);
 
+-- Add Indexes for common lookups
+CREATE INDEX IF NOT EXISTS idx_open_calendar_shares_owner ON open_calendar_shares(owner_user_id);
+CREATE INDEX IF NOT EXISTS idx_open_calendar_shares_deleted_at ON open_calendar_shares(deleted_at);
+CREATE INDEX IF NOT EXISTS idx_open_calendar_share_categories_open_share_id ON open_calendar_share_categories(open_share_id);
+CREATE INDEX IF NOT EXISTS idx_open_calendar_share_categories_category_id ON open_calendar_share_categories(category_id);
+
 -- Indexes for 2FA
 CREATE INDEX IF NOT EXISTS idx_users_tfa_enabled ON users(tfa_enabled);
+
+-- Function to create default categories for a new user ---
+DROP FUNCTION IF EXISTS create_default_categories() CASCADE;
+CREATE FUNCTION create_default_categories()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- Insert default categories linked to the NEW user_id
+    INSERT INTO categories (user_id, name, color, is_visible) VALUES
+    (NEW.user_id, 'Classes', '#1abc9c', TRUE),
+    (NEW.user_id, 'Assignments', '#3498db', TRUE),
+    (NEW.user_id, 'Family/Friends', '#9b59b6', TRUE),
+    (NEW.user_id, 'Personal', '#ffff00', TRUE);
+
+    RETURN NEW; -- Important for AFTER INSERT triggers
+END;
+$$ LANGUAGE plpgsql;
+
+-- Trigger to call the function after a new user is inserted ---
+DROP TRIGGER IF EXISTS trigger_create_default_categories ON users;
+CREATE TRIGGER trigger_create_default_categories
+AFTER INSERT ON users -- Fire after a row is inserted
+FOR EACH ROW          -- For each inserted row
+EXECUTE FUNCTION create_default_categories(); -- Execute our new function

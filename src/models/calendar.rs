@@ -1,5 +1,6 @@
 use serde::{Serialize, Deserialize}; // Need Deserialize for testing potentially
 use chrono::{DateTime, Utc};
+use sqlx::types::Uuid;
 use crate::models::enums::{DeadlinePriorityLevel, WorkloadUnitType, SharePrivacyLevel}; // Import enums
 use crate::models::event::Event; // Import base Event structure
 use crate::models::deadline::Deadline; // Import base Deadline structure
@@ -86,4 +87,17 @@ pub struct SharedCalendarResponse {
     pub deadlines: Vec<SharedCalendarDeadline>,
     // Could also include shared categories list here if useful
     // pub shared_category_ids: Vec<i32>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct OpenSharedCalendarResponse {
+    pub open_share_id: Uuid,
+    // pub owner_user_id: i32, // The user who owns this calendar
+    pub owner_user_id: i32,
+    pub privacy_level: SharePrivacyLevel,
+
+    pub events: Vec<SharedCalendarEvent>,
+    pub deadlines: Vec<SharedCalendarDeadline>,
+
 }

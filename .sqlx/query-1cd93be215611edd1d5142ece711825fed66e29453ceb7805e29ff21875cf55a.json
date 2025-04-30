@@ -1,0 +1,27 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        UPDATE open_calendar_shares\n        SET\n            privacy_level = $1,\n            expires_at = $2,\n            updated_at = NOW() -- Explicitly update updated_at\n        WHERE open_share_id = $3 AND owner_user_id = $4\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        {
+          "Custom": {
+            "name": "share_privacy_level",
+            "kind": {
+              "Enum": [
+                "full",
+                "limited"
+              ]
+            }
+          }
+        },
+        "Timestamptz",
+        "Uuid",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "1cd93be215611edd1d5142ece711825fed66e29453ceb7805e29ff21875cf55a"
+}

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n        SELECT\n           event_id, user_id, category_id, title, description as \"description!: _\", start_time, end_time,\n           location as \"location!: _\", rrule as \"rrule!: _\",\n           created_at as \"created_at!\", updated_at as \"updated_at!\", deleted_at as \"deleted_at!: _\"\n        FROM events\n        WHERE user_id = $1\n        ORDER BY start_time -- Optional: order by start time\n        ",
+  "query": "\n        SELECT\n           event_id, user_id, category_id, title, description as \"description!: _\",\n           start_time, end_time, location as \"location!: _\", rrule as \"rrule!: _\",\n           created_at as \"created_at!\", updated_at as \"updated_at!\", deleted_at as \"deleted_at!: _\"\n        FROM events e\n        WHERE e.user_id = $1 -- Events owned by the sharer\n          AND e.category_id = ANY($2) -- Category is in the list of shared categories\n          AND e.deleted_at IS NULL -- Only non-deleted events\n        ORDER BY e.start_time\n        ",
   "describe": {
     "columns": [
       {
@@ -66,7 +66,8 @@
     ],
     "parameters": {
       "Left": [
-        "Int4"
+        "Int4",
+        "Int4Array"
       ]
     },
     "nullable": [
@@ -84,5 +85,5 @@
       true
     ]
   },
-  "hash": "7f54cc892876bbd48ff658044594f7f0bcf2cd7451fe5d780efa3708f46ce2a1"
+  "hash": "e0397c48c541bf893deeaa90e4f04076c22510e039d54d6bceb7ad5e23ff32e2"
 }
