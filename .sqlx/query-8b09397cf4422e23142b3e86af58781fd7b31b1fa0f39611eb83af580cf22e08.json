@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n        SELECT\n           event_id, user_id, category_id, title, description as \"description!: _\", start_time, end_time,\n           location as \"location!: _\", rrule as \"rrule!: _\",\n           created_at as \"created_at!\", updated_at as \"updated_at!\", deleted_at as \"deleted_at!: _\"\n        FROM events\n        WHERE user_id = $1\n        ORDER BY start_time -- Optional: order by start time\n        ",
+  "query": "\n        SELECT\n           event_id, user_id, category_id, title, description as \"description!: _\", start_time, end_time,\n           location as \"location!: _\", rrule as \"rrule!: _\",\n           created_at as \"created_at!\", updated_at as \"updated_at!\", deleted_at as \"deleted_at!: _\"\n        FROM events\n        WHERE user_id = $1 AND deleted_at IS NULL\n        ORDER BY start_time -- Optional: order by start time\n        ",
   "describe": {
     "columns": [
       {
@@ -84,5 +84,5 @@
       true
     ]
   },
-  "hash": "7f54cc892876bbd48ff658044594f7f0bcf2cd7451fe5d780efa3708f46ce2a1"
+  "hash": "8b09397cf4422e23142b3e86af58781fd7b31b1fa0f39611eb83af580cf22e08"
 }

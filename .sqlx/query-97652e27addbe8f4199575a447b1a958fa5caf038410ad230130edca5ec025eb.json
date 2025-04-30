@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n        SELECT\n           deadline_id, user_id, category_id, title, description, due_date, virtual_due_date, priority as \"priority!: _\",\n           workload_magnitude as \"workload_magnitude!: _\", workload_unit as \"workload_unit!: _\",\n           created_at as \"created_at!\", updated_at as \"updated_at!\", deleted_at as \"deleted_at!: _\"\n        FROM deadlines\n        WHERE user_id = $1\n        ORDER BY due_date -- Optional: order by due date\n        ",
+  "query": "\n        SELECT\n           deadline_id, user_id, category_id, title, description, due_date, virtual_due_date, priority as \"priority!: _\",\n           workload_magnitude as \"workload_magnitude!: _\", workload_unit as \"workload_unit!: _\",\n           created_at as \"created_at!\", updated_at as \"updated_at!\", deleted_at as \"deleted_at!: _\"\n        FROM deadlines\n        WHERE user_id = $1 AND deleted_at IS NULL\n        ORDER BY due_date -- Optional: order by due date\n        ",
   "describe": {
     "columns": [
       {
@@ -112,5 +112,5 @@
       true
     ]
   },
-  "hash": "586f49a2083807434109dd1154656d49532a7eaff1262030a782ef390fed3cd4"
+  "hash": "97652e27addbe8f4199575a447b1a958fa5caf038410ad230130edca5ec025eb"
 }
