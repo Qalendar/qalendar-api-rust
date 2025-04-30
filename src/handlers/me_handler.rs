@@ -106,7 +106,7 @@ pub async fn update_user_handler(
     // Handle DOB update: parse if string provided, or set to NULL if explicit null in payload
      if payload.dob.is_some() || (payload.dob.is_none() && payload.dob.as_ref().is_some()) {
          updated_dob = match payload.dob {
-             Some(s) if !s.is_empty() => {
+             Some(ref s) if !s.is_empty() => {
                  Some(NaiveDate::parse_from_str(&s, "%Y-%m-%d").map_err(|e| {
                      tracing::warn!("Invalid date format for DOB update: {}", e);
                       AppError::ValidationFailed(validator::ValidationErrors::new()) // Simple error

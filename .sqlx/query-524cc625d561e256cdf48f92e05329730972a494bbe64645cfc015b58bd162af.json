@@ -1,0 +1,106 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT user_id, display_name, email, password_hash, date_of_birth as \"date_of_birth!: _\",\n               email_verified as \"email_verified!\",\n               verification_code, verification_code_expires_at as \"verification_code_expires_at!: _\",\n               reset_code, reset_code_expires_at as \"reset_code_expires_at!: _\",\n               created_at as \"created_at!\",\n               updated_at as \"updated_at!\",\n               deleted_at as \"deleted_at!: _\",\n               tfa_enabled as \"tfa_enabled!: _\",\n               tfa_secret as \"tfa_secret!: _\"\n        FROM users WHERE user_id = $1\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "user_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "display_name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "email",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "password_hash",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "date_of_birth!: _",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 5,
+        "name": "email_verified!",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 6,
+        "name": "verification_code",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "verification_code_expires_at!: _",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 8,
+        "name": "reset_code",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 9,
+        "name": "reset_code_expires_at!: _",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 10,
+        "name": "created_at!",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 11,
+        "name": "updated_at!",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 12,
+        "name": "deleted_at!: _",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 13,
+        "name": "tfa_enabled!: _",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 14,
+        "name": "tfa_secret!: _",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false,
+      true
+    ]
+  },
+  "hash": "524cc625d561e256cdf48f92e05329730972a494bbe64645cfc015b58bd162af"
+}

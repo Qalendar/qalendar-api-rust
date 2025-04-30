@@ -126,6 +126,7 @@ pub async fn register_user_handler(
         email_verified: insert_result.email_verified.unwrap_or(false), // Should be false
         created_at: insert_result.created_at.unwrap(), // Should not be null
         date_of_birth: insert_result.date_of_birth,
+        tfa_enabled: Some(insert_result.tfa_enabled)
     };
 
     let token = create_token(user_data.user_id, &state.config)?;
@@ -178,6 +179,7 @@ pub async fn login_user_handler(
             email_verified: user.email_verified,
             created_at: user.created_at,
             date_of_birth: user.date_of_birth,
+            tfa_enabled: Some(user.tfa_enabled), // Include this for clarity
         };
         Ok(Json(LoginResponse::Auth(AuthResponse { token, user: user_data, code_prefix: None }))) // No prefix needed for login response
     }
@@ -249,6 +251,7 @@ pub async fn verify_tfa_login_handler(
         email_verified: user.email_verified,
         created_at: user.created_at,
         date_of_birth: user.date_of_birth,
+        tfa_enabled: Some(user.tfa_enabled)
     };
 
     tracing::info!("User {} successfully logged in with 2FA.", user.user_id);

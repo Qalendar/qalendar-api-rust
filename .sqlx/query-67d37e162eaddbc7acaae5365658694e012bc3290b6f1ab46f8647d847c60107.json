@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        UPDATE users\n        SET deleted_at = NOW()\n        WHERE user_id = $1 AND deleted_at IS NULL -- Ensure only delete if not already deleted\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "67d37e162eaddbc7acaae5365658694e012bc3290b6f1ab46f8647d847c60107"
+}
