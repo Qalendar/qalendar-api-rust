@@ -5,6 +5,30 @@ use sqlx::FromRow; // Needed for sqlx to map database rows
 
 // --- API Payloads ---
 
+// --- New Payloads for User Management ---
+
+#[derive(Deserialize, Validate, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct UpdateUserPayload {
+    #[validate(length(min = 1, max = 100))] // Allow updating display name
+    pub display_name: Option<String>,
+
+    // Allow updating DOB
+    // Could add custom date validation if needed
+    pub dob: Option<String>, // String in payload, parse in handler
+
+    // IMPORTANT: Do NOT include email, password, or verification/reset fields here.
+    // Email/Password updates should be separate, dedicated endpoints.
+    // System fields like tfa_enabled, deleted_at are not updated via this endpoint.
+}
+
+#[derive(Deserialize, Validate, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct DeleteUserPayload {
+    #[validate(required)] // Require password confirmation for deletion
+    pub password: Option<String>,
+}
+
 #[derive(Deserialize, Validate, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct RegisterUserPayload {
@@ -163,6 +187,7 @@ pub struct UserData {
     // Optionally include dob
     #[serde(rename = "dateOfBirth", skip_serializing_if = "Option::is_none")]
     pub date_of_birth: Option<NaiveDate>,
+    pub tfa_enabled: Option<bool>, // <-- Add this
 }
 
 #[derive(Serialize, Debug)]
