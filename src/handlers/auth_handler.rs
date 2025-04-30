@@ -223,7 +223,7 @@ pub async fn verify_tfa_login_handler(
     }
 
     // 3. Get the stored secret
-    let tfa_secret_base32 = match user.tfa_secret {
+    let tfa_secret_base32: String = match user.tfa_secret {
         Some(secret) => secret,
         None => {
             tracing::error!("User {} has TFA enabled but no secret stored!", user.user_id);
@@ -643,7 +643,7 @@ pub async fn complete_tfa_setup_handler(
         return Err(AppError::TfaAlreadyEnabled);
     }
 
-    let tfa_secret_base32 = match user.tfa_secret {
+    let tfa_secret_base32: String = match user.tfa_secret {
         Some(secret) => secret,
         None => {
              tracing::warn!("Complete 2FA setup attempt for user {} with no temporary secret.", user.user_id);
