@@ -7,29 +7,36 @@ use serde_json::json; // For simple JSON responses
 
 use super::{category, deadline, event, invitation, share, tfa, ai, open_share}; // Import submodules
 
+// Import me_handler for the /me routes
+use crate::handlers::me_handler::{
+    get_authenticated_user_info, // Import the modified GET handler
+    update_user_handler, // Import the new PUT handler
+    delete_user_handler, // Import the new DELETE handler
+};
+
 // Handler that requires authentication
 // Axum automatically runs the AuthenticatedUser extractor before this handler
 // If the extractor fails (invalid/missing token), this handler is NEVER reached.
 // Instead, the AppError::JwtError (mapped to 401 Unauthorized) is returned.
-pub async fn get_authenticated_user_info(
-    // This extractor runs FIRST. If it succeeds, `user` is the AuthenticatedUser struct.
-    AuthenticatedUser { user_id }: AuthenticatedUser,
-    // Access state if needed
-    // State(state): State<AppState>,
-) -> Result<Json<serde_json::Value>, AppError> { // Use Result<Json<...>, AppError>
-    // If we reach here, the user is authenticated, and `user_id` is available.
-    tracing::info!("Authenticated user accessed /me: {}", user_id);
+// pub async fn get_authenticated_user_info(
+//     // This extractor runs FIRST. If it succeeds, `user` is the AuthenticatedUser struct.
+//     AuthenticatedUser { user_id }: AuthenticatedUser,
+//     // Access state if needed
+//     // State(state): State<AppState>,
+// ) -> Result<Json<serde_json::Value>, AppError> { // Use Result<Json<...>, AppError>
+//     // If we reach here, the user is authenticated, and `user_id` is available.
+//     tracing::info!("Authenticated user accessed /me: {}", user_id);
 
-    // Now you can use user_id to fetch user details from the DB if needed,
-    // or just return the ID as proof of authentication.
+//     // Now you can use user_id to fetch user details from the DB if needed,
+//     // or just return the ID as proof of authentication.
 
-    Ok(Json(json!({
-        "message": "You are authenticated!",
-        "userId": user_id,
-        // You could fetch more details here:
-        // "userDetails": fetch_user_from_db(user_id, &state.pool).await?
-    })))
-}
+//     Ok(Json(json!({
+//         "message": "You are authenticated!",
+//         "userId": user_id,
+//         // You could fetch more details here:
+//         // "userDetails": fetch_user_from_db(user_id, &state.pool).await?
+//     })))
+// }
 
 
 // Function to create the /me sub-router
@@ -45,6 +52,13 @@ pub fn me_routes(app_state: AppState) -> Router {
     let open_share_router = open_share::open_share_routes(app_state.clone());
 
     Router::new()
+       // --- Base /api/me routes (GET, PUT, DELETE for the user themselves) ---
+       .route(
+           "/",
+           get(get_authenticated_user_info) // GET /api/me (get user details)
+           .put(update_user_handler) // PUT /api/me (update user details)
+           .delete(delete_user_handler) // DELETE /api/me (soft delete user)
+       )
        // Define the base protected route /api/me
        .route("/", get(get_authenticated_user_info)) // /api/me
        .nest("/categories", categories_router) // /api/me/categories
