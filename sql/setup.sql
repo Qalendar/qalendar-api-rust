@@ -283,3 +283,26 @@ CREATE INDEX IF NOT EXISTS idx_open_calendar_share_categories_category_id ON ope
 
 -- Indexes for 2FA
 CREATE INDEX IF NOT EXISTS idx_users_tfa_enabled ON users(tfa_enabled);
+
+-- Function to create default categories for a new user ---
+DROP FUNCTION IF EXISTS create_default_categories() CASCADE;
+CREATE FUNCTION create_default_categories()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- Insert default categories linked to the NEW user_id
+    INSERT INTO categories (user_id, name, color, is_visible) VALUES
+    (NEW.user_id, 'Classes', '#1abc9c', TRUE),
+    (NEW.user_id, 'Assignments', '#3498db', TRUE),
+    (NEW.user_id, 'Family/Friends', '#9b59b6', TRUE),
+    (NEW.user_id, 'Personal', '#ffff00', TRUE);
+
+    RETURN NEW; -- Important for AFTER INSERT triggers
+END;
+$$ LANGUAGE plpgsql;
+
+-- Trigger to call the function after a new user is inserted ---
+DROP TRIGGER IF EXISTS trigger_create_default_categories ON users;
+CREATE TRIGGER trigger_create_default_categories
+AFTER INSERT ON users -- Fire after a row is inserted
+FOR EACH ROW          -- For each inserted row
+EXECUTE FUNCTION create_default_categories(); -- Execute our new function
