@@ -100,7 +100,7 @@ pub async fn get_deadlines(
            workload_magnitude as "workload_magnitude!: _", workload_unit as "workload_unit!: _",
            created_at as "created_at!", updated_at as "updated_at!", deleted_at as "deleted_at!: _"
         FROM deadlines
-        WHERE user_id = $1
+        WHERE user_id = $1 AND deleted_at IS NULL
         ORDER BY due_date -- Optional: order by due date
         "#,
         user_id

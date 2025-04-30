@@ -88,7 +88,7 @@ pub async fn get_events(
            location as "location!: _", rrule as "rrule!: _",
            created_at as "created_at!", updated_at as "updated_at!", deleted_at as "deleted_at!: _"
         FROM events
-        WHERE user_id = $1
+        WHERE user_id = $1 AND deleted_at IS NULL
         ORDER BY start_time -- Optional: order by start time
         "#,
         user_id
