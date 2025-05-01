@@ -3,6 +3,7 @@ use std::env;
 
 #[derive(Clone)]
 pub struct Config {
+    pub version: String, // Version 
     pub database_url: String,
     pub jwt_secret: String,
     pub server_address: String,
@@ -32,6 +33,8 @@ pub struct Config {
 impl Config {
     // Update function signature to return AppError
     pub fn from_env() -> Result<Self, AppError> {
+        let version = env!("CARGO_PKG_VERSION").to_string(); // <-- Inject version here
+
         let database_url = env::var("DATABASE_URL")
             .map_err(|e| AppError::ConfigurationError(format!("Missing DATABASE_URL: {}", e)))?;
 
@@ -87,6 +90,7 @@ impl Config {
             .unwrap_or_else(|_| "You are a helpful assistant.".to_string()); // Default system prompt
 
         Ok(Self {
+            version,
             database_url,
             jwt_secret,
             server_address,
