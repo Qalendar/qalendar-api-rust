@@ -1,15 +1,15 @@
-FROM debian:bookworm-slim
-
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-      ca-certificates \
-      libssl3 \
-      libpq5 \
-  && rm -rf /var/lib/apt/lists/*
-
+# Stage 1: Build
+FROM clux/muslrust:latest AS builder
 WORKDIR /app
+COPY Cargo.toml Cargo.lock ./
+COPY src ./src
+RUN cargo build --release --target x86_64-unknown-linux-musl
 
-COPY target/release/qalendar-api ./qalendar-api
+# Stage 2: Final
+FROM alpine:latest
+RUN apk add --no-cache ca-certificates
+WORKDIR /app
+COPY --from=builder /app/target/x86_64-unknown-linux-musl/release/qalendar-api .
 RUN chmod +x qalendar-api
 
 EXPOSE 8000
