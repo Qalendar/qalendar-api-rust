@@ -3,11 +3,12 @@ FROM clux/muslrust:latest AS builder
 WORKDIR /app
 COPY Cargo.toml Cargo.lock ./
 COPY src ./src
+COPY .sqlx ./.sqlx
 RUN cargo build --release --target x86_64-unknown-linux-musl
 
 # Stage 2: Final
 FROM alpine:latest
-RUN apk add --no-cache ca-certificates
+RUN apk update && apk add --no-cache ca-certificates
 WORKDIR /app
 COPY --from=builder /app/target/x86_64-unknown-linux-musl/release/qalendar-api .
 RUN chmod +x qalendar-api
