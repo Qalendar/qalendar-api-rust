@@ -67,6 +67,7 @@ jobs:
         run: docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY:$IMAGE_TAG
 
   deploy:
+    needs: build-and-push
     name: Deploy to Elastic Beanstalk
     runs-on: ubuntu-latest
 
