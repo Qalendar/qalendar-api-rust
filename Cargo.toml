@@ -42,6 +42,7 @@ async-openai = "0.28.1"
 mime = "0.3.17"
 bytes = "1.10.1"
 base64 = "0.22.1"
+toml = "0.5.8"
 
 [profile.release]
 opt-level = 3
