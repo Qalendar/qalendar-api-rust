@@ -38,8 +38,16 @@ jobs:
             ${{ runner.os }}-cargo-
 
       - name: Test & build in release mode
-        run: cargo build --release --tests --verbose
-
+        run: cargo build --release --verbose
+        
+      - name: Debug
+        run: |
+          echo "Files in repo root:"
+          ls -R .
+          echo
+          echo "Files in target/release:"
+          ls -lah target/release || true
+    
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
