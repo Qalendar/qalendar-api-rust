@@ -70,6 +70,13 @@ jobs:
     name: Deploy to Elastic Beanstalk
     runs-on: ubuntu-latest
 
+    env:
+      AWS_REGION: ${{ secrets.AWS_REGION }}
+      EB_APP_NAME: ${{ secrets.EB_APP_NAME }}
+      EB_ENV_NAME: ${{ secrets.EB_ENV_NAME }}
+      EB_S3_BUCKET: ${{ secrets.EB_S3_BUCKET }}
+      ECR_REGISTRY_URI: ${{ secrets.ECR_REGISTRY_URI }}
+
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
