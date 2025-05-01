@@ -15,7 +15,7 @@ pub mod sync; // Declare the sync submodule
 pub mod tfa; // Declare the tfa submodule
 pub mod ai;
 mod open_share;
-// Declare the ai submodule
+mod health; // Declare the health submodule
 
 // Function to create the main API router, combining all sub-routers
 pub fn create_api_router(app_state: AppState) -> Router {
@@ -23,11 +23,13 @@ pub fn create_api_router(app_state: AppState) -> Router {
     let me_router = me::me_routes(app_state.clone()); // Pass state
     let calendar_routes = calendar::calendar_routes(app_state.clone()); // Pass state
     let sync_routes = sync::sync_routes(app_state.clone()); // Pass state
+    let health_routes = health::health_routes(app_state.clone()); // Pass state
 
     Router::new() // Group auth routes under /api
         .nest("/auth", auth_router)
         .nest("/me", me_router)
         .nest("/calendar", calendar_routes) // Group calendar routes under /api/calendar
         .nest("/sync", sync_routes) // Group sync routes under /api/sync
+        .nest("/health", health_routes) // Group health routes under /api/health
         // .nest("/other_feature", other_routes) // Add more features later
 }

@@ -50,6 +50,30 @@ jobs:
       - name: Push to ECR
         run: docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY:$IMAGE_TAG
 
+      - name: Increment version in Cargo.toml
+        run: |
+          # Extract the current version from Cargo.toml
+          current_version=$(grep '^version =' Cargo.toml | sed 's/version = "\(.*\)"/\1/')
+          echo "Current version: $current_version"
+
+          # Split the version into its components
+          IFS='.' read -r major minor patch <<< "$current_version"
+
+          # Increment the patch version
+          new_patch=$((patch + 1))
+          new_version="$major.$minor.$new_patch"
+          echo "New version: $new_version"
+
+          # Update the version in Cargo.toml
+          sed -i "s/^version = \".*\"/version = \"$new_version\"/" Cargo.toml
+
+          # Commit the updated Cargo.toml
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add Cargo.toml
+          git commit -m "Increment version to $new_version"
+          git push
+
   deploy:
     needs: build-and-push
     name: Deploy to Elastic Beanstalk
@@ -124,4 +148,3 @@ jobs:
             --version-label "${{ env.VERSION_LABEL }}"
             # You might add --timeout or wait commands here for production to wait for deployment success/failure
             # e.g., --region ${{ env.AWS_REGION }} && aws elasticbeanstalk wait environment-updated --application-name ${{ env.EB_APP_NAME }} --version-label "${{ env.VERSION_LABEL }}" --region ${{ env.AWS_REGION }}
-
