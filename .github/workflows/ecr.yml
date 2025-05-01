@@ -1,4 +1,4 @@
-name: Build & Upload to ECR test
+name: Build & Deploy
 
 on:
   push:
@@ -15,6 +15,7 @@ env:
 
 jobs:
   build-and-push:
+    name: Build and Push Image to ECR
     runs-on: ubuntu-latest
     
     env:
@@ -37,16 +38,8 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-cargo-
 
-      - name: Test & build in release mode
+      - name: Build in release mode
         run: cargo build --release --verbose
-        
-      - name: Debug
-        run: |
-          echo "Files in repo root:"
-          ls -R .
-          echo
-          echo "Files in target/release:"
-          ls -lah target/release || true
     
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -72,3 +65,71 @@ jobs:
 
       - name: Push to ECR
         run: docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY:$IMAGE_TAG
+
+  deploy:
+    name: Deploy to Elastic Beanstalk
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Generate Dockerrun.aws.json
+        run: |
+          cat <<EOF > Dockerrun.aws.json
+          {
+            "AWSEBDockerrunVersion": "1",
+            "Image": {
+              "Name": "${{ env.ECR_REGISTRY_URI }}:${{ github.sha }}",
+              "Update": "true"
+            },
+            "Ports": [
+              {
+                "ContainerPort": 8000
+              }
+            ],
+            "Volumes": [],
+            "Logging": "/var/log/containers"
+          }
+          EOF
+          echo "Generated Dockerrun.aws.json:"
+          cat Dockerrun.aws.json
+
+      - name: Zip deployment bundle
+        run: zip -r deploy.zip Dockerrun.aws.json
+
+      - name: Upload bundle to S3
+        run: |
+          aws s3 cp deploy.zip s3://${{ env.EB_S3_BUCKET }}/deploy-bundles/${{ github.sha }}.zip
+          echo "Uploaded deploy.zip to s3://${{ env.EB_S3_BUCKET }}/deploy-bundles/${{ github.sha }}.zip"
+
+      - name: Register new EB application version
+        run: |
+          # Generate a unique version label based on timestamp and commit SHA
+          TIMESTAMP=$(date +%Y%m%d%H%M%S)
+          VERSION_LABEL="${TIMESTAMP}-${{ github.sha }}"
+          echo "Generated EB Version Label: $VERSION_LABEL"
+          # Store the version label in the GitHub Actions environment for the next step
+          echo "VERSION_LABEL=$VERSION_LABEL" >> $GITHUB_ENV
+
+          aws elasticbeanstalk create-application-version \
+            --application-name ${{ env.EB_APP_NAME }} \
+            --version-label "$VERSION_LABEL" \
+            --source-bundle S3Bucket="${{ env.EB_S3_BUCKET }}",S3Key="deploy-bundles/${{ github.sha }}.zip" \
+            --region ${{ env.AWS_REGION }}
+
+      - name: Deploy to EB environment
+        run: |
+          echo "Deploying version ${{ env.VERSION_LABEL }} to environment ${{ env.EB_ENV_NAME }}"
+          aws elasticbeanstalk update-environment \
+            --environment-name ${{ env.EB_ENV_NAME }} \
+            --version-label "${{ env.VERSION_LABEL }}"
+            # You might add --timeout or wait commands here for production to wait for deployment success/failure
+            # e.g., --region ${{ env.AWS_REGION }} && aws elasticbeanstalk wait environment-updated --application-name ${{ env.EB_APP_NAME }} --version-label "${{ env.VERSION_LABEL }}" --region ${{ env.AWS_REGION }}
+
